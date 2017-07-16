@@ -4,6 +4,15 @@
 
 At [r/roguelikedev](https://www.reddit.com/r/roguelikedev/) we're doing a dev-along following [The Complete Roguelike Tutorial](http://www.roguebasin.com/index.php?title=Complete_Roguelike_Tutorial,_using_python%2Blibtcod).
 
+___
+
+## If you want to compile/play
+
+* [Python 3.6](https://www.python.org)
+* [libtcod 1.6.3](https://bitbucket.org/libtcod/libtcod/downloads/) if you have 32-bit python you must use the 32-bit libtcod
+
+____
+
 ## If you would like to participate on GitHub
 
 * [Sign up for a free personal account](https://github.com/signup/free) if you don't already have one.
