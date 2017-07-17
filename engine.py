@@ -12,8 +12,8 @@ def main():
 
     screen_width = 80
     screen_height = 50
-    map_width = 80
-    map_height = 45
+    map_width = 56
+    map_height = 50
 
     room_max_size = 10
     room_min_size = 6
@@ -35,9 +35,9 @@ def main():
     player = Entity(0, 0, '@', libtcod.white, 'Player', blocks=True)
     entities = [player]
 
-    libtcod.console_set_custom_font('arial10x10.png',
+    libtcod.console_set_custom_font('terminal12x12_gs_ro.png',
                                     libtcod.FONT_TYPE_GREYSCALE |
-                                    libtcod.FONT_LAYOUT_TCOD)
+                                    libtcod.FONT_LAYOUT_ASCII_INROW)
 
     libtcod.console_init_root(screen_width, screen_height,
                               'libtcod tutorial revised', False)
