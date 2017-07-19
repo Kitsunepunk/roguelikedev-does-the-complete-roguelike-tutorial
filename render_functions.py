@@ -18,8 +18,8 @@ def render_all(mapcon, entities, game_map, fov_map, fov_recompute, mcw, mch,
                                                     get('back'))
                     else:
                         libtcod.console_put_char_ex(mapcon, x, y, '.', colors.
-                                                    get('light_ground'), colors.
-                                                    get('back'))
+                                                    get('light_ground'),
+                                                    colors.get('back'))
                     game_map.tiles[x][y].explored = True
                 elif game_map.tiles[x][y].explored:
                     if wall:

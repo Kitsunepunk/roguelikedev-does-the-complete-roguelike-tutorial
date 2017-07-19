@@ -13,6 +13,14 @@ ___
 
 ____
 
+## TODO
+
+* Get Camera working
+* Figure out both setting and scope
+* Implement setting and creatures
+* Try not to have feature creep
+___
+
 ## If you would like to participate on GitHub
 
 * [Sign up for a free personal account](https://github.com/signup/free) if you don't already have one.
