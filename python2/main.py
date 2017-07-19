@@ -8,8 +8,10 @@ CAM_WIDTH = 58
 CAM_HEIGHT = 38
 
 #size of the map
-MAP_WIDTH = 100
-MAP_HEIGHT = 100
+MAP_MIN_SIZE = 70
+MAP_MAX_SIZE = 100
+MAP_WIDTH = 100 # libtcod.random_get_int(0, MAP_MIN_SIZE, MAP_MAX_SIZE)
+MAP_HEIGHT = 70 # libtcod.random_get_int(0, MAP_MIN_SIZE, MAP_MAX_SIZE)
 
 #parameters for dungeon generator
 ROOM_MAX_SIZE = 10
@@ -17,27 +19,36 @@ ROOM_MIN_SIZE = 6
 MAX_ROOMS = 30
 MAX_ROOM_MONSTERS = 3
 
-left_f_width = 60
-map_f_height = 40
+LEFT_F_WIDTH = 60
+MAP_F_HEIGHT = 40
 
-look_width = 58
-look_height = 1
-look_f_height = 3
+LOOK_WIDTH = 58
+LOOK_HEIGHT = 1
+LOOK_F_HEIGHT = 3
 
-msg_f_height = 7
+MSG_F_HEIGHT = 7
+MSG_WIDTH = 58
+MSG_HEIGHT = 5
 
+INFO_WIDTH = 18
+INFO_HEIGHT = 48
 
-FOV_ALGO = 0  #default FOV algorithm
+FOV_ALGO = libtcod.FOV_BASIC  #default FOV algorithm
 FOV_LIGHT_WALLS = True  #light walls or not
 TORCH_RADIUS = 10
 
 LIMIT_FPS = 20  #20 frames-per-second maximum
 
 
-color_dark_wall = libtcod.Color(0, 0, 100)
-color_light_wall = libtcod.Color(130, 110, 50)
-color_dark_ground = libtcod.Color(50, 50, 150)
-color_light_ground = libtcod.Color(200, 180, 50)
+color_dark_wall = libtcod.darker_grey
+color_light_wall = libtcod.amber
+color_dark_ground = libtcod.dark_grey
+color_light_ground = libtcod.light_amber
+color_dark_back = libtcod.darkest_grey
+
+obj_back = libtcod.black
+player_color = libtcod.black
+player_back = libtcod.green
 
 
 class Tile:
@@ -73,12 +84,13 @@ class Rect:
 class Object:
     #this is a generic object: the player, a monster, an item, the stairs...
     #it's always represented by a character on screen.
-    def __init__(self, x, y, char, name, color, blocks=False):
+    def __init__(self, x, y, char, name, color, color2, blocks=False):
         self.x = x
         self.y = y
         self.char = char
         self.name = name
         self.color = color
+        self.color2 = color2
         self.blocks = blocks
 
     def move(self, dx, dy):
@@ -94,8 +106,7 @@ class Object:
 
             if x is not None:
                 #set the color and then draw the character that represents this object at its position
-                libtcod.console_set_default_foreground(mapcon, self.color)
-                libtcod.console_put_char(mapcon, x, y, self.char, libtcod.BKGND_NONE)
+                libtcod.console_put_char_ex(mapcon, x, y, self.char, self.color, self.color2)
 
     def clear(self):
         if libtcod.map_is_in_fov(fov_map, self.x, self.y):
@@ -219,11 +230,11 @@ def place_objects(room):
         if not is_blocked(x, y):
             if libtcod.random_get_int(0, 0, 100) < 80:  #80% chance of getting an orc
                 #create an orc
-                monster = Object(x, y, 'o', 'orc', libtcod.desaturated_green,
+                monster = Object(x, y, 'o', 'orc', libtcod.desaturated_green, obj_back,
                     blocks=True)
             else:
                 #create a troll
-                monster = Object(x, y, 'T', 'troll', libtcod.darker_green,
+                monster = Object(x, y, 'T', 'troll', libtcod.darker_green, obj_back,
                     blocks=True)
 
             objects.append(monster)
@@ -276,9 +287,9 @@ def render_all():
                     #if it's not visible right now, the player can only see it if it's explored
                     if map[map_x][map_y].explored:
                         if wall:
-                            libtcod.console_put_char_ex(mapcon, x, y, '#', color_dark_wall, libtcod.black)
+                            libtcod.console_put_char_ex(mapcon, x, y, '#', color_dark_wall, color_dark_back)
                         else:
-                            libtcod.console_put_char_ex(mapcon, x, y, '.', color_dark_ground, libtcod.black)
+                            libtcod.console_put_char_ex(mapcon, x, y, '.', color_dark_ground, color_dark_back)
                 else:
                     #it's visible
                     if wall:
@@ -294,7 +305,9 @@ def render_all():
 
     #blit the contents of "con" to the root console
     libtcod.console_blit(mapcon, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1)
-    libtcod.console_blit(lookcon, 0, 0, look_width, look_height, 0, 1, 41)
+    libtcod.console_blit(lookcon, 0, 0, LOOK_WIDTH, LOOK_HEIGHT, 0, 1, 41)
+    libtcod.console_blit(msgcon, 0, 0, MSG_WIDTH, MSG_HEIGHT, 0, 1, 44)
+    libtcod.console_blit(infocon, 0, 0, INFO_WIDTH, INFO_HEIGHT, 0, 61,1)
 
 
 def player_move_or_attack(dx, dy):
@@ -360,21 +373,31 @@ libtcod.console_set_default_foreground(0, libtcod.white)
 libtcod.console_set_default_background(0, libtcod.Color(51, 51, 51))
 
 libtcod.console_rect(0, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, False, libtcod.BKGND_SET)
-libtcod.console_print_frame(0, 0, 0, left_f_width, map_f_height, False, libtcod.BKGND_SET, 'MAP')
-libtcod.console_print_frame(0, 0, 40, left_f_width, look_f_height, False, libtcod.BKGND_SET, 'LOOK')
-libtcod.console_print_frame(0, 0, 43, left_f_width, msg_f_height, False, libtcod.BKGND_SET, 'MESSAGE LOG')
+libtcod.console_print_frame(0, 0, 0, LEFT_F_WIDTH, MAP_F_HEIGHT, False, libtcod.BKGND_SET, 'MAP')
+libtcod.console_print_frame(0, 0, 40, LEFT_F_WIDTH, LOOK_F_HEIGHT, False, libtcod.BKGND_SET, 'LOOK')
+libtcod.console_print_frame(0, 0, 43, LEFT_F_WIDTH, MSG_F_HEIGHT, False, libtcod.BKGND_SET, 'MESSAGE LOG')
 libtcod.console_print_frame(0, 60, 0, 20, 50, False, libtcod.BKGND_SET, 'PLAYER')
 
 
 mapcon = libtcod.console_new(CAM_WIDTH, CAM_HEIGHT)
-lookcon = libtcod.console_new(look_width, look_height)
+
+lookcon = libtcod.console_new(LOOK_WIDTH, LOOK_HEIGHT)
 libtcod.console_set_default_foreground(lookcon, libtcod.Color(255, 255, 255))
 libtcod.console_set_default_background(lookcon, libtcod.Color(0, 51, 51))
-libtcod.console_rect(lookcon, 0, 0, look_width, look_height, True, libtcod.BKGND_SET)
+libtcod.console_rect(lookcon, 0, 0, LOOK_WIDTH, LOOK_HEIGHT, True, libtcod.BKGND_SET)
 
+msgcon = libtcod.console_new(MSG_WIDTH, MSG_HEIGHT)
+libtcod.console_set_default_foreground(msgcon, libtcod.Color(255, 255, 255))
+libtcod.console_set_default_background(msgcon, libtcod.Color(51, 0, 51))
+libtcod.console_rect(msgcon, 0, 0, MSG_WIDTH, MSG_HEIGHT, True, libtcod.BKGND_SET)
+
+infocon = libtcod.console_new(INFO_WIDTH, INFO_HEIGHT)
+libtcod.console_set_default_foreground(infocon, libtcod.Color(255, 255, 255))
+libtcod.console_set_default_background(infocon, libtcod.Color(51, 51, 0))
+libtcod.console_rect(infocon, 0, 0, INFO_WIDTH, INFO_HEIGHT, True, libtcod.BKGND_SET)
 
 #create object representing the player
-player = Object(0, 0, '@', 'player', libtcod.white, blocks=True)
+player = Object(0, 0, '@', 'player', player_color, player_back, blocks=True)
 
 #the list of objects with just the player
 objects = [player]
