@@ -4,7 +4,7 @@ import textwrap
 
 # game constants
 GAME_TITLE = 'Quest of the McGuffin'
-GAME_VER = '2017.07.19'
+GAME_VER = '2017.07.20'
 
 # actual size of the window
 SCREEN_WIDTH = 80
@@ -50,7 +50,8 @@ LIMIT_FPS = 20  # 20 frames-per-second maximum
 BAR_WIDTH = 16
 
 
-con_back_color = libtcod.Color(51, 51, 51)
+con_fore_color = libtcod.white
+con_back_color = libtcod.black
 
 color_dark_wall = libtcod.darker_grey
 color_light_wall = libtcod.amber
@@ -133,6 +134,33 @@ class Object:
         dx = int(round(dx / distance))
         dy = int(round(dy / distance))
         self.move(dx, dy)
+
+    def move_astar(self, target):
+        # create a FOV map that has the dimensions of the map
+        fov = libtcod.map_new(MAP_WIDTH, MAP_HEIGHT)
+
+        for y1 in range(MAP_HEIGHT):
+            for x1 in range(MAP_WIDTH):
+                libtcod.map_set_properties(fov, x1, y1,
+                                           not map[x1][y1].block_sight,
+                                           not map[x1][y1].blocked)
+        for obj in objects:
+            if obj.blocks and obj != self and obj != target:
+                libtcod.map_set_properties(fov, obj.x, obj.y, True, False)
+
+        my_path = libtcod.path_new_using_map(fov, 1.41)
+        libtcod.path_compute(my_path, self.x, self.y, target.x, target.y)
+
+        if not (libtcod.path_is_empty(my_path) and
+                libtcod.path_size(my_path) < 25):
+            x, y = libtcod.path_walk(my_path, True)
+            if x or y:
+                self.x = x
+                self.y = y
+        else:
+            self.move_towards(target.x, target.y)
+
+        libtcod.path_delete(my_path)
 
     def distance_to(self, other):
         # return the distance to another object
@@ -217,7 +245,7 @@ class BasicMonster:
 
             # move towards player if far away
             if monster.distance_to(player) >= 2:
-                monster.move_towards(player.x, player.y)
+                monster.move_astar(player)
 
             # close enough, attack! ( if the player is still alive)
             elif player.fighter.hp >= 0:
@@ -382,8 +410,8 @@ def render_bar(con, x, y, total_width, name, value, max_value, text_color,
 
     # finally some centered text with the values
     libtcod.console_set_default_foreground(con, text_color)
-    libtcod.console_print_ex(con, x + total_width / 2, y, libtcod.BKGND_NONE,
-                             libtcod.CENTER, name + ': ' + str(value) + '/' +
+    libtcod.console_print_ex(con, x, y -1 , libtcod.BKGND_NONE,
+                             libtcod.LEFT, name + ': ' + str(value) + '/' +
                              str(max_value))
 
 
@@ -530,9 +558,19 @@ def render_all():
     libtcod.console_clear(infocon)
 
     # show the player's stats
-    render_bar(infocon, 1, 1, BAR_WIDTH, 'HP', player.fighter.hp,
+    libtcod.console_print_ex(infocon, 1, 1, libtcod.BKGND_NONE, libtcod.LEFT,
+                             player.name)
+
+    render_bar(infocon, 1, 3, BAR_WIDTH, 'HP', player.fighter.hp,
                player.fighter.max_hp, libtcod.white, libtcod.light_red,
                libtcod.darker_red)
+
+    libtcod.console_print_ex(infocon, 1, 4, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'Pow: ' + str(player.fighter.power) + '(' +
+                             str(player.fighter.power) + ')')
+    libtcod.console_print_ex(infocon, 1, 5, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'Def: ' + str(player.fighter.defense) + '(' +
+                             str(player.fighter.defense) + ')')
 
     libtcod.console_blit(infocon, 0, 0, INFO_WIDTH, INFO_HEIGHT, 0, 61, 1)
 
@@ -586,18 +624,29 @@ def handle_keys():
 
     if game_state == 'playing':
         # movement keys
-        if libtcod.console_is_key_pressed(libtcod.KEY_UP):
+        if key.vk == libtcod.KEY_UP or key.vk == libtcod.KEY_KP8:
             player_move_or_attack(0, -1)
 
-        elif libtcod.console_is_key_pressed(libtcod.KEY_DOWN):
+        elif key.vk == libtcod.KEY_DOWN or key.vk == libtcod.KEY_KP2:
             player_move_or_attack(0, 1)
 
-        elif libtcod.console_is_key_pressed(libtcod.KEY_LEFT):
+        elif key.vk == libtcod.KEY_LEFT or key.vk == libtcod.KEY_KP4:
             player_move_or_attack(-1, 0)
 
-        elif libtcod.console_is_key_pressed(libtcod.KEY_RIGHT):
+        elif key.vk == libtcod.KEY_RIGHT or key.vk == libtcod.KEY_KP6:
             player_move_or_attack(1, 0)
+        elif key.vk == libtcod.KEY_HOME or key.vk == libtcod.KEY_KP7:
+            player_move_or_attack(-1, -1)
 
+        elif key.vk == libtcod.KEY_PAGEUP or key.vk == libtcod.KEY_KP9:
+            player_move_or_attack(1, -1)
+
+        elif key.vk == libtcod.KEY_END or key.vk == libtcod.KEY_KP1:
+            player_move_or_attack(-1, 1)
+        elif key.vk == libtcod.KEY_PAGEDOWN or key.vk == libtcod.KEY_KP3:
+            player_move_or_attack(1, 1)
+        elif key.vk== libtcod.KEY_KP5:
+            pass
         else:
             return 'didnt-take-turn'
 
@@ -639,8 +688,8 @@ libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, GAME_TITLE + ' ' +
                           GAME_VER, False)
 libtcod.sys_set_fps(LIMIT_FPS)
 
-libtcod.console_set_default_foreground(0, libtcod.white)
-libtcod.console_set_default_background(0, libtcod.Color(51, 51, 51))
+libtcod.console_set_default_foreground(0, con_fore_color)
+libtcod.console_set_default_background(0, con_back_color)
 
 libtcod.console_rect(0, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, False,
                      libtcod.BKGND_SET)
@@ -651,26 +700,26 @@ libtcod.console_print_frame(0, 0, 40, LEFT_F_WIDTH, LOOK_F_HEIGHT, False,
 libtcod.console_print_frame(0, 0, 43, LEFT_F_WIDTH, MSG_F_HEIGHT, False,
                             libtcod.BKGND_SET, 'MESSAGE LOG')
 libtcod.console_print_frame(0, 60, 0, 20, 50, False, libtcod.BKGND_SET,
-                            'PLAYER')
+                            'INFORMATION')
 
 
 mapcon = libtcod.console_new(CAM_WIDTH, CAM_HEIGHT)
 
 lookcon = libtcod.console_new(LOOK_WIDTH, LOOK_HEIGHT)
-libtcod.console_set_default_foreground(lookcon, libtcod.Color(255, 255, 255))
-libtcod.console_set_default_background(lookcon, libtcod.Color(51, 51, 51))
+libtcod.console_set_default_foreground(lookcon, con_fore_color)
+libtcod.console_set_default_background(lookcon, con_back_color)
 libtcod.console_rect(lookcon, 0, 0, LOOK_WIDTH, LOOK_HEIGHT, True,
                      libtcod.BKGND_SET)
 
 msgcon = libtcod.console_new(MSG_WIDTH, MSG_HEIGHT)
-libtcod.console_set_default_foreground(msgcon, libtcod.Color(255, 255, 255))
-libtcod.console_set_default_background(msgcon, libtcod.Color(51, 0, 51))
+libtcod.console_set_default_foreground(msgcon, con_fore_color)
+libtcod.console_set_default_background(msgcon, con_back_color)
 libtcod.console_rect(msgcon, 0, 0, MSG_WIDTH, MSG_HEIGHT, True,
                      libtcod.BKGND_SET)
 
 infocon = libtcod.console_new(INFO_WIDTH, INFO_HEIGHT)
-libtcod.console_set_default_foreground(infocon, libtcod.Color(255, 255, 255))
-libtcod.console_set_default_background(infocon, libtcod.Color(51, 51, 51))
+libtcod.console_set_default_foreground(infocon, con_fore_color)
+libtcod.console_set_default_background(infocon, con_back_color)
 libtcod.console_rect(infocon, 0, 0, INFO_WIDTH, INFO_HEIGHT, True,
                      libtcod.BKGND_SET)
 
