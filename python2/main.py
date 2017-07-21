@@ -52,6 +52,8 @@ BAR_WIDTH = 16
 
 INVENTORY_WIDTH = 50
 
+heal = 4
+
 con_fore_color = libtcod.white
 con_back_color = libtcod.black
 
@@ -64,6 +66,8 @@ color_dark_back = libtcod.darkest_grey
 obj_back = libtcod.black
 player_color = libtcod.black
 player_back = libtcod.green
+
+warning_color = libtcod.green
 
 
 class Tile:
@@ -241,6 +245,11 @@ class Fighter:
                 if function is not None:
                     function(self.owner)
 
+    def heal(self, amount):
+        self.hp += amount
+        if self.hp > self.max_hp:
+            self.hp = self.max_hp
+
 
 class BasicMonster:
     # AI for a basic monster.
@@ -260,6 +269,10 @@ class BasicMonster:
 
 class Item:
     # an item that can be picked up and used
+
+    def __init__(self, use_function=None):
+        self.use_function = use_function
+
     def pick_up(self):
         # add to the player's inventory and remove from the map
         if len(inventory) >= 26:
@@ -270,6 +283,14 @@ class Item:
             objects.remove(self.owner)
             message('You picked up a ' + self.owner.name + '!',
                     self.owner.color)
+
+    def use(self):
+
+        if self.use_function is None:
+            message('The ' + self.owner.name + ' cannot be used')
+        else:
+            if self.use_function() != 'cancelled':
+                inventory.remove(self.owner)
 
 
 def is_blocked(x, y):
@@ -419,7 +440,7 @@ def place_objects(room):
         # only place it if the tile is not blocked
         if not is_blocked(x, y):
             # create a healing potion
-            item_component = Item()
+            item_component = Item(cast_heal)
             item = Object(x, y, 173, 'Healing Potion', libtcod.red,
                           con_back_color, item=item_component)
 
@@ -611,6 +632,8 @@ def render_all():
 
     libtcod.console_blit(infocon, 0, 0, INFO_WIDTH, INFO_HEIGHT, 0, 61, 1)
 
+    draw_frames()
+
 
 def message(new_msg, color=libtcod.white):
     # split the message if necessary, among multiple lines
@@ -648,7 +671,7 @@ def player_move_or_attack(dx, dy):
         fov_recompute = True
 
 
-def menu(title, header, options, width):
+def menu(title,header, options, width):
 
     if len(options) > 26:
         raise ValueError('Cannot have a menu with more than 26 options.')
@@ -656,36 +679,40 @@ def menu(title, header, options, width):
         # calculate total height for teh header (after auto-wrap) and
         # one line per option
 
-        header_height = libtcod.console_get_height_rect(mapcon, 0, 0, width,
+    header_height = libtcod.console_get_height_rect(mapcon, 0, 0, width,
                                                         SCREEN_HEIGHT, header)
-        height = len(options) + header_height
+    height = len(options) + header_height + 4
 
         # create an off-screen console that represents the menu's window
-        menucon = libtcod.console_new(width, height)
+    window = libtcod.console_new(width, height)
 
         # print the header, with auto-wrap
-        libtcod.console_set_default_foreground(menucon, con_fore_color)
-        libtcod.console_set_default_background(menucon, con_back_color)
-        libtcod.console_print_frame(menucon, 0, 0, width, height,
-                                    True, libtcod.BKGND_NONE, title)
-        libtcod.console_print_rect_ex(menucon, 0, 0, width, height,
-                                      libtcod.BKGND_NONE, libtcod.LEFT, header)
+    libtcod.console_set_default_foreground(window, con_fore_color)
+    libtcod.console_print_frame(window, 0, 0, width, height, False, libtcod.BKGND_NONE, title)
+    libtcod.console_hline(window, 1, 3, width - 2, libtcod.BKGND_NONE)
+    libtcod.console_print_rect_ex(window, 1, 1, width, height,
+                                  libtcod.BKGND_NONE, libtcod.LEFT, header)
 
-        y = header_height
-        letter_index = ord('a')
-        for option_text in options:
-            text = '(' + chr(letter_index) + ') ' + option_text
-            libtcod.console_print_ex(menucon, 0, y, libtcod.BKGND_NONE,
-                                     libtcod.LEFT, text)
-            y += 1
-            letter_index += 1
+    y = header_height + 1
+    letter_index = ord('a')
+    for option_text in options:
+        text = '(' + chr(letter_index) + ') ' + option_text
+        libtcod.console_print_ex(window,  1, y, libtcod.BKGND_SET,
+                                 libtcod.LEFT, text)
+        y += 1
+        letter_index += 1
 
-        x = SCREEN_WIDTH / 2 - width / 2
-        y = SCREEN_HEIGHT / 2 - height / 2
-        libtcod.console_blit(menucon, 0, 0, width, height, 0, x, y, 1.0, .7)
+    x = SCREEN_WIDTH / 2 - width / 2
+    y = SCREEN_HEIGHT / 2 - height / 2
+    libtcod.console_blit(window, 0, 0, width, height, 0, x, y, 1.0, 0.7)
 
-        libtcod.console_flush()
-        key = libtcod.console_wait_for_keypress(True)
+    libtcod.console_flush()
+    key = libtcod.console_wait_for_keypress(True)
+
+    index = key.c - ord('a')
+    if index >= 0 and index < len(options):
+        return index
+    return None
 
 
 def inventory_menu(title, header):
@@ -697,8 +724,12 @@ def inventory_menu(title, header):
 
     index = menu(title, header, options, INVENTORY_WIDTH)
 
+    if index is None or len(inventory) == 0: return None
+    return inventory[index].item
+
 
 def handle_keys():
+    global key
     # key = libtcod.console_check_for_keypress()  # real-time
     # key = libtcod.console_wait_for_keypress(True)  # turn-based
 
@@ -737,18 +768,19 @@ def handle_keys():
         else:
             key_char = chr(key.c)
 
+            if key_char == 'i':
+                # message('testing the inventory key', libtcod.azure)
+                chosen_item = inventory_menu('inventory','Press the key next to an item to use it, or any other to cancel.\n')
+                if chosen_item is not None:
+                    chosen_item.use()
+
             if key_char == 'g':
                 # pick up an item..
                 for object in objects:
                     if (object.x == player.x and object.y == player.y and
-                       object.item):
+                            object.item):
                         object.item.pick_up()
                         break
-
-            if key_char == 'i':
-                chosen_item = inventory_menu('inventory', 'Press the key' +
-                                             ' next to an item to use it,' +
-                                             ' or any other to cancel.\n')
 
             return 'didnt-take-turn'
 
@@ -778,6 +810,35 @@ def monster_death(monster):
     monster.name = 'remains of ' + monster.name
     monster.send_to_back()
 
+def roll_dice(num, sides):
+
+    total = 0
+    roll = 0
+    run_total = 0
+
+    for dice in range(num):
+        #print '--'
+
+        total = libtcod.random_get_int(0, 1, sides)
+        run_total += total
+        roll += 1
+        #print str(num) + 'd' + str(sides)
+        #print 'roll:' + str(roll) + ' running total:' +  str(run_total) + ' rolled:' + str(total)
+        #print '--'
+
+    #print run_total
+    return run_total
+
+
+def cast_heal():
+
+    if player.fighter.hp == player.fighter.max_hp:
+        message('You are already at full health.')
+        return 'cancelled'
+
+    player.fighter.heal(roll_dice(1, heal) + heal / 2)
+    message('Your wounds start to fell better!', libtcod.red)
+
 
 #############################################
 # Initialization & Main Loop
@@ -793,16 +854,18 @@ libtcod.sys_set_fps(LIMIT_FPS)
 libtcod.console_set_default_foreground(0, con_fore_color)
 libtcod.console_set_default_background(0, con_back_color)
 
-libtcod.console_rect(0, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, False,
-                     libtcod.BKGND_SET)
-libtcod.console_print_frame(0, 0, 0, LEFT_F_WIDTH, MAP_F_HEIGHT,
-                            False, libtcod.BKGND_SET, 'MAP')
-libtcod.console_print_frame(0, 0, 40, LEFT_F_WIDTH, LOOK_F_HEIGHT, False,
-                            libtcod.BKGND_SET, 'LOOK')
-libtcod.console_print_frame(0, 0, 43, LEFT_F_WIDTH, MSG_F_HEIGHT, False,
-                            libtcod.BKGND_SET, 'MESSAGE LOG')
-libtcod.console_print_frame(0, 60, 0, 20, 50, False, libtcod.BKGND_SET,
-                            'INFORMATION')
+# libtcod.console_rect(0, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, False,
+#                     libtcod.BKGND_SET)
+def draw_frames():
+    #libtcod.console_clear(0)
+    libtcod.console_print_frame(0, 0, 0, 60, MAP_F_HEIGHT,
+                                False, libtcod.BKGND_SET, 'MAP')
+    libtcod.console_print_frame(0, 0, 40, LEFT_F_WIDTH, LOOK_F_HEIGHT, False,
+                                libtcod.BKGND_SET, 'LOOK')
+    libtcod.console_print_frame(0, 0, 43, LEFT_F_WIDTH, MSG_F_HEIGHT, False,
+                                libtcod.BKGND_SET, 'MESSAGE LOG')
+    libtcod.console_print_frame(0, 60, 0, INFO_WIDTH + 2, 50, False, libtcod.BKGND_SET,
+                                'INFORMATION')
 
 
 mapcon = libtcod.console_new(CAM_WIDTH, CAM_HEIGHT)
@@ -810,20 +873,20 @@ mapcon = libtcod.console_new(CAM_WIDTH, CAM_HEIGHT)
 lookcon = libtcod.console_new(LOOK_WIDTH, LOOK_HEIGHT)
 libtcod.console_set_default_foreground(lookcon, con_fore_color)
 libtcod.console_set_default_background(lookcon, con_back_color)
-libtcod.console_rect(lookcon, 0, 0, LOOK_WIDTH, LOOK_HEIGHT, True,
-                     libtcod.BKGND_SET)
+# libtcod.console_rect(lookcon, 0, 0, LOOK_WIDTH, LOOK_HEIGHT, True,
+#                     libtcod.BKGND_SET)
 
 msgcon = libtcod.console_new(MSG_WIDTH, MSG_HEIGHT)
 libtcod.console_set_default_foreground(msgcon, con_fore_color)
 libtcod.console_set_default_background(msgcon, con_back_color)
-libtcod.console_rect(msgcon, 0, 0, MSG_WIDTH, MSG_HEIGHT, True,
-                     libtcod.BKGND_SET)
+# libtcod.console_rect(msgcon, 0, 0, MSG_WIDTH, MSG_HEIGHT, True,
+#                     libtcod.BKGND_SET)
 
 infocon = libtcod.console_new(INFO_WIDTH, INFO_HEIGHT)
 libtcod.console_set_default_foreground(infocon, con_fore_color)
 libtcod.console_set_default_background(infocon, con_back_color)
-libtcod.console_rect(infocon, 0, 0, INFO_WIDTH, INFO_HEIGHT, True,
-                     libtcod.BKGND_SET)
+# libtcod.console_rect(infocon, 0, 0, INFO_WIDTH, INFO_HEIGHT, True,
+#                     libtcod.BKGND_SET)
 
 # create object representing the player
 fighter_component = Fighter(hp=30, defense=2, power=5,
