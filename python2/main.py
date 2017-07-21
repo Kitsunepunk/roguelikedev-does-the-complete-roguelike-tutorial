@@ -24,6 +24,7 @@ ROOM_MAX_SIZE = 10
 ROOM_MIN_SIZE = 6
 MAX_ROOMS = 30
 MAX_ROOM_MONSTERS = 3
+MAX_ROOM_ITEMS = 2
 
 LEFT_F_WIDTH = 60
 MAP_F_HEIGHT = 40
@@ -41,7 +42,7 @@ MSG_HEIGHT = 5
 INFO_WIDTH = 18
 INFO_HEIGHT = 48
 
-FOV_ALGO = 0  # libtcod.FOV_PERMISSIVE_1  # default FOV algorithm
+FOV_ALGO = libtcod.FOV_SHADOW  # libtcod.FOV_PERMISSIVE_1default FOV algorithm
 FOV_LIGHT_WALLS = True  # light walls or not
 TORCH_RADIUS = 10
 
@@ -49,6 +50,7 @@ LIMIT_FPS = 20  # 20 frames-per-second maximum
 
 BAR_WIDTH = 16
 
+INVENTORY_WIDTH = 50
 
 con_fore_color = libtcod.white
 con_back_color = libtcod.black
@@ -101,7 +103,7 @@ class Object:
     # this is a generic object: the player, a monster, an item, the stairs...
     # it's always represented by a character on screen.
     def __init__(self, x, y, char, name, color, color2, blocks=False,
-                 fighter=None, ai=None):
+                 fighter=None, ai=None, item=None):
         self.x = x
         self.y = y
         self.char = char
@@ -116,6 +118,10 @@ class Object:
         self.ai = ai
         if self.ai:  # let the AI component know who wons it
             self.ai.owner = self
+
+        self.item = item
+        if self.item:  # let the Item component know who owns it
+            self.item.owner = self
 
     def move(self, dx, dy):
         # move by the given amount, if the destination is not blocked
@@ -213,7 +219,7 @@ class Fighter:
             if self.owner.name != 'Player':
                 message(self.owner.name.capitalize() + ' attacks ' +
                         target.name +
-                        ' for ' + str(damage) + ' hit points.',
+                        ' for' + str(damage) + ' hit points.',
                         self.owner.color)
             else:
                 message(self.owner.name.capitalize() + ' attacks ' +
@@ -250,6 +256,20 @@ class BasicMonster:
             # close enough, attack! ( if the player is still alive)
             elif player.fighter.hp >= 0:
                 monster.fighter.attack(player)
+
+
+class Item:
+    # an item that can be picked up and used
+    def pick_up(self):
+        # add to the player's inventory and remove from the map
+        if len(inventory) >= 26:
+            message('Your inventory is full, cannot pick up ' +
+                    self.owner.name + '.', libtcod.darker_red)
+        else:
+            inventory.append(self.owner)
+            objects.remove(self.owner)
+            message('You picked up a ' + self.owner.name + '!',
+                    self.owner.color)
 
 
 def is_blocked(x, y):
@@ -364,8 +384,8 @@ def place_objects(room):
 
     for i in range(num_monsters):
         # choose random spot for this monster
-        x = libtcod.random_get_int(0, room.x1, room.x2)
-        y = libtcod.random_get_int(0, room.y1, room.y2)
+        x = libtcod.random_get_int(0, room.x1 + 1, room.x2 - 1)
+        y = libtcod.random_get_int(0, room.y1 + 1, room.y2 - 1)
 
         # only place it if the tile is not blocked
         if not is_blocked(x, y):
@@ -389,6 +409,23 @@ def place_objects(room):
 
             objects.append(monster)
 
+    num_items = libtcod.random_get_int(0, 0, MAX_ROOM_ITEMS)
+
+    for i in range(num_items):
+        # choose random number of items
+        x = libtcod.random_get_int(0, room.x1 + 1, room.x2 - 1)
+        y = libtcod.random_get_int(0, room.y1 + 1, room.y2 - 1)
+
+        # only place it if the tile is not blocked
+        if not is_blocked(x, y):
+            # create a healing potion
+            item_component = Item()
+            item = Object(x, y, 173, 'Healing Potion', libtcod.red,
+                          con_back_color, item=item_component)
+
+            objects.append(item)
+            item.send_to_back()  # items appear below other objects
+
 
 def render_bar(con, x, y, total_width, name, value, max_value, text_color,
                bar_color, bar_back_color):
@@ -410,7 +447,7 @@ def render_bar(con, x, y, total_width, name, value, max_value, text_color,
 
     # finally some centered text with the values
     libtcod.console_set_default_foreground(con, text_color)
-    libtcod.console_print_ex(con, x, y -1 , libtcod.BKGND_NONE,
+    libtcod.console_print_ex(con, x, y - 1, libtcod.BKGND_NONE,
                              libtcod.LEFT, name + ': ' + str(value) + '/' +
                              str(max_value))
 
@@ -611,6 +648,56 @@ def player_move_or_attack(dx, dy):
         fov_recompute = True
 
 
+def menu(title, header, options, width):
+
+    if len(options) > 26:
+        raise ValueError('Cannot have a menu with more than 26 options.')
+
+        # calculate total height for teh header (after auto-wrap) and
+        # one line per option
+
+        header_height = libtcod.console_get_height_rect(mapcon, 0, 0, width,
+                                                        SCREEN_HEIGHT, header)
+        height = len(options) + header_height
+
+        # create an off-screen console that represents the menu's window
+        menucon = libtcod.console_new(width, height)
+
+        # print the header, with auto-wrap
+        libtcod.console_set_default_foreground(menucon, con_fore_color)
+        libtcod.console_set_default_background(menucon, con_back_color)
+        libtcod.console_print_frame(menucon, 0, 0, width, height,
+                                    True, libtcod.BKGND_NONE, title)
+        libtcod.console_print_rect_ex(menucon, 0, 0, width, height,
+                                      libtcod.BKGND_NONE, libtcod.LEFT, header)
+
+        y = header_height
+        letter_index = ord('a')
+        for option_text in options:
+            text = '(' + chr(letter_index) + ') ' + option_text
+            libtcod.console_print_ex(menucon, 0, y, libtcod.BKGND_NONE,
+                                     libtcod.LEFT, text)
+            y += 1
+            letter_index += 1
+
+        x = SCREEN_WIDTH / 2 - width / 2
+        y = SCREEN_HEIGHT / 2 - height / 2
+        libtcod.console_blit(menucon, 0, 0, width, height, 0, x, y, 1.0, .7)
+
+        libtcod.console_flush()
+        key = libtcod.console_wait_for_keypress(True)
+
+
+def inventory_menu(title, header):
+
+    if len(inventory) == 0:
+        options = ['Inventory is empty.']
+    else:
+        options = [item.name for item in inventory]
+
+    index = menu(title, header, options, INVENTORY_WIDTH)
+
+
 def handle_keys():
     # key = libtcod.console_check_for_keypress()  # real-time
     # key = libtcod.console_wait_for_keypress(True)  # turn-based
@@ -645,9 +732,24 @@ def handle_keys():
             player_move_or_attack(-1, 1)
         elif key.vk == libtcod.KEY_PAGEDOWN or key.vk == libtcod.KEY_KP3:
             player_move_or_attack(1, 1)
-        elif key.vk== libtcod.KEY_KP5:
+        elif key.vk == libtcod.KEY_KP5:
             pass
         else:
+            key_char = chr(key.c)
+
+            if key_char == 'g':
+                # pick up an item..
+                for object in objects:
+                    if (object.x == player.x and object.y == player.y and
+                       object.item):
+                        object.item.pick_up()
+                        break
+
+            if key_char == 'i':
+                chosen_item = inventory_menu('inventory', 'Press the key' +
+                                             ' next to an item to use it,' +
+                                             ' or any other to cancel.\n')
+
             return 'didnt-take-turn'
 
 
@@ -745,6 +847,8 @@ for y in range(MAP_HEIGHT):
 fov_recompute = True
 game_state = 'playing'
 player_action = None
+
+inventory = []
 
 game_msgs = []
 
