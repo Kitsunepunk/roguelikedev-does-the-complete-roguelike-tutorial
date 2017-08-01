@@ -16,8 +16,8 @@ CAM_HEIGHT = 40
 # size of the map
 MAP_MIN_SIZE = 70
 MAP_MAX_SIZE = 100
-MAP_WIDTH = 100  # libtcod.random_get_int(0, MAP_MIN_SIZE, MAP_MAX_SIZE)
-MAP_HEIGHT = 100  # libtcod.random_get_int(0, MAP_MIN_SIZE, MAP_MAX_SIZE)
+MAP_WIDTH = libtcod.random_get_int(0, MAP_MIN_SIZE, MAP_MAX_SIZE)
+MAP_HEIGHT = libtcod.random_get_int(0, MAP_MIN_SIZE, MAP_MAX_SIZE)
 
 # parameters for dungeon generator
 ROOM_MAX_SIZE = 10
@@ -58,7 +58,7 @@ fireball = 12
 LIGHTNING_RANGE = 5
 CONFUSE_NUM_TURNS = 10
 CONFUSE_RANGE = 8
-FIREBALL_RADIUS = 6
+FIREBALL_RADIUS = 3
 
 con_fore_color = libtcod.white
 con_back_color = libtcod.black
@@ -313,7 +313,7 @@ class Item:
                     self.owner.color)
 
     def drop(self):
-        
+
         objects.append(self.owner)
         inventory.remove(self.owner)
         self.owner.x = player.x
@@ -369,7 +369,9 @@ def create_v_tunnel(y1, y2, x):
 
 
 def make_map():
-    global map, player
+    global map, objects
+
+    objects = [player]
 
     # fill map with "blocked" tiles
     map = [[Tile(True) for y in range(MAP_HEIGHT)]
@@ -669,41 +671,7 @@ def render_all():
     libtcod.console_clear(infocon)
 
     # show the player's stats
-    libtcod.console_print_ex(infocon, 1, 1, libtcod.BKGND_NONE, libtcod.LEFT,
-                             player.name)
-
-    render_bar(infocon, 1, 3, BAR_WIDTH, 'HP', player.fighter.hp,
-               player.fighter.max_hp, libtcod.white, libtcod.light_red,
-               libtcod.darker_red)
-
-    libtcod.console_print_ex(infocon, 1, 4, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'Pow: ' + str(player.fighter.power) + '(' +
-                             str(player.fighter.power) + ')')
-    libtcod.console_print_ex(infocon, 1, 5, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'Def: ' + str(player.fighter.defense) + '(' +
-                             str(player.fighter.defense) + ')')
-    libtcod.console_print_ex(debug, 1, 1, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'M.Pos.:(' + str((mouse.cx, mouse.cy)) + ')')
-    libtcod.console_print_ex(debug, 1, 2, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'C.P.+M.P.:' +
-                             str((camera_x + mouse.cx, camera_y + mouse.cy)))
-    libtcod.console_print_ex(debug, 1, 3, libtcod.BKGND_NONE, libtcod.LEFT,
-                             '@.Pos:' + str((player.x, player.y)))
-    libtcod.console_print_ex(debug, 1, 4, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'C.P.+@.P.:' +
-                             str((camera_x + player.x, camera_y + player.y)))
-    libtcod.console_print_ex(debug, 1, 5, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'in FOV: ' +
-                             str(libtcod.map_is_in_fov(fov_map, camera_x + mouse.cx,
-                                                       mouse.cy +
-                                                       camera_y)))
-    libtcod.console_print_ex(debug, 1, 6, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'L.b.click: ' + str(mouse.lbutton_pressed))
-    libtcod.console_print_ex(debug, 1, 7, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'R.b.click: ' + str(mouse.rbutton_pressed))
-    libtcod.console_print_ex(debug, 1, 8, libtcod.BKGND_NONE, libtcod.LEFT,
-                             '@.dist(M.pos):' + str(int(player.distance(mouse.cx,mouse.cy))))
-
+    info_screen()
     libtcod.console_blit(infocon, 0, 0, INFO_WIDTH, INFO_HEIGHT, 0, 61, 1)
 
     draw_frames()
@@ -745,7 +713,7 @@ def player_move_or_attack(dx, dy):
         fov_recompute = True
 
 
-def menu(title,header, options, width):
+def menu(title, header, options, width):
 
     if len(options) > 26:
         raise ValueError('Cannot have a menu with more than 26 options.')
@@ -753,7 +721,10 @@ def menu(title,header, options, width):
         # calculate total height for teh header (after auto-wrap) and
         # one line per option
 
-    header_height = libtcod.console_get_height_rect(mapcon, 0, 0, width,
+    if header == '':
+        header_height = 0
+    else:
+        header_height = libtcod.console_get_height_rect(mapcon, 0, 0, width,
                                                         SCREEN_HEIGHT, header)
     height = len(options) + header_height + 4
 
@@ -762,10 +733,18 @@ def menu(title,header, options, width):
 
         # print the header, with auto-wrap
     libtcod.console_set_default_foreground(window, con_fore_color)
-    libtcod.console_print_frame(window, 0, 0, width, height, False, libtcod.BKGND_NONE, title)
-    libtcod.console_hline(window, 1, 3, width - 2, libtcod.BKGND_NONE)
-    libtcod.console_print_rect_ex(window, 1, 1, width, height,
-                                  libtcod.BKGND_NONE, libtcod.LEFT, header)
+    libtcod.console_set_default_background(window, con_back_color)
+
+    if header != '':
+
+        libtcod.console_hline(window, 1, 3, width - 2, libtcod.BKGND_SET)
+        libtcod.console_print_rect_ex(window, 1, 1, width, height,
+                                      libtcod.BKGND_SET, libtcod.LEFT, header)
+        libtcod.console_print_frame(window, 0, 0, width, height, True,
+                                    libtcod.BKGND_SET, title)
+    else:
+        libtcod.console_print_rect_ex(window, 1, 1, width, height,
+                                      libtcod.BKGND_SET, libtcod.LEFT, header)
 
     y = header_height + 2
     letter_index = ord('a')
@@ -787,6 +766,37 @@ def menu(title,header, options, width):
     if index >= 0 and index < len(options):
         return index
     return None
+
+
+def debug():
+
+    libtcod.console_print_ex(infocon, 1, 4, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'Pow: ' + str(player.fighter.power) + '(' +
+                             str(player.fighter.power) + ')')
+    libtcod.console_print_ex(infocon, 1, 5, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'Def: ' + str(player.fighter.defense) + '(' +
+                             str(player.fighter.defense) + ')')
+    libtcod.console_print_ex(debug, 1, 1, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'M.Pos.:(' + str((mouse.cx, mouse.cy)) + ')')
+    libtcod.console_print_ex(debug, 1, 2, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'C.P.+M.P.:' +
+                             str((camera_x + mouse.cx, camera_y + mouse.cy)))
+    libtcod.console_print_ex(debug, 1, 3, libtcod.BKGND_NONE, libtcod.LEFT,
+                             '@.Pos:' + str((player.x, player.y)))
+    libtcod.console_print_ex(debug, 1, 4, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'C.P.+@.P.:' +
+                             str((camera_x + player.x, camera_y + player.y)))
+    libtcod.console_print_ex(debug, 1, 5, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'in FOV: ' +
+                             str(libtcod.map_is_in_fov(fov_map, camera_x + mouse.cx,
+                                                       mouse.cy +
+                                                       camera_y)))
+    libtcod.console_print_ex(debug, 1, 6, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'L.b.click: ' + str(mouse.lbutton_pressed))
+    libtcod.console_print_ex(debug, 1, 7, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'R.b.click: ' + str(mouse.rbutton_pressed))
+    libtcod.console_print_ex(debug, 1, 8, libtcod.BKGND_NONE, libtcod.LEFT,
+                             '@.dist(M.pos):' + str(int(player.distance(mouse.cx,mouse.cy))))
 
 
 def inventory_menu(title, header):
@@ -909,17 +919,17 @@ def target_tile(max_range=None):
 
     while True:
         libtcod.console_flush()
-        libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS |
-                                    libtcod.EVENT_MOUSE, key, mouse)
+        libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS|libtcod.EVENT_MOUSE, key, mouse)
         render_all()
 
         (x, y) = (mouse.cx, mouse.cy)
-        (x, y) = (mouse.cx + x, mouse.cy + y)
+        (x, y) = (camera_x + x, camera_y + y)
 
         if mouse.rbutton_pressed or key.vk == libtcod.KEY_ESCAPE:
             return (None, None)
 
-        if mouse.lbutton_pressed:
+        if (mouse.lbutton_pressed and libtcod.map_is_in_fov(fov_map, x, y) and
+            (max_range is None or player.distance(x, y) <= max_range)):
             return (x, y)
 
 
@@ -999,8 +1009,9 @@ def cast_lightning():
     base = lightning / 2
     total = die_roll + base
     message('A lightning blolt strikes the ' + monster.name + ' with a loud' +
-            ' thunder! The damage is ' + str((total)) +
-            ' hit points.', libtcod.sky)
+            ' thunder! The damage is 1d' + str(lightning) + '+' + str(base) +
+            '(' + str((total)) +
+            ') hit points.', libtcod.sky)
     monster.fighter.take_damage((total))
 
 
@@ -1010,16 +1021,20 @@ def cast_fireball():
             ' cancel.', libtcod.light_cyan)
 
     (x, y) = target_tile()
-    if x is None:
-        return 'cancelled'
+    if x is None: return 'cancelled'
     message('The fireball explodes, burning everything within ' +
             str(FIREBALL_RADIUS) + ' tiles!', libtcod.flame)
 
+
     for obj in objects:
         if obj.distance(x, y) <= FIREBALL_RADIUS and obj.fighter:
-            message('The ' + obj.name + ' gets burned for ' +
-                    str(fireball_total) + ' hit points.', libtcod.light_flame)
-            obj.fighter.take_damage(12)
+            die_roll = roll_dice(1, fireball)
+            base = fireball / 2
+            fire_dmg = die_roll + base
+            message('The ' + obj.name + ' gets burned for 1d' + str(fireball) +
+                    '+' + str(base) + '(' + str(fire_dmg) + ') hit points.',
+                    libtcod.flame)
+            obj.fighter.take_damage(fire_dmg)
 
 
 def cast_confuse():
@@ -1042,19 +1057,11 @@ def cast_confuse():
 # Initialization & Main Loop
 #############################################
 
-libtcod.console_set_custom_font('cp437_12x12.png',
-                                libtcod.FONT_TYPE_GREYSCALE |
-                                libtcod.FONT_LAYOUT_ASCII_INROW)
-libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, GAME_TITLE + ' ' +
-                          GAME_VER, False)
-libtcod.sys_set_fps(LIMIT_FPS)
-
-libtcod.console_set_default_foreground(0, con_fore_color)
-libtcod.console_set_default_background(0, con_back_color)
-
 # libtcod.console_rect(0, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, False,
 #                     libtcod.BKGND_SET)
 def draw_frames():
+    libtcod.console_set_default_foreground(0, con_fore_color)
+    libtcod.console_set_default_background(0, con_back_color)
     #libtcod.console_clear(0)
 #    libtcod.console_print_frame(0, 0, 0, 60, MAP_F_HEIGHT,
 #                                False, libtcod.BKGND_SET, 'MAP')
@@ -1062,86 +1069,151 @@ def draw_frames():
                                 libtcod.BKGND_SET, 'LOOK')
     libtcod.console_print_frame(0, 0, 43, LEFT_F_WIDTH, MSG_F_HEIGHT, False,
                                 libtcod.BKGND_SET, 'MESSAGE LOG')
-    libtcod.console_print_frame(0, 60, 0, INFO_WIDTH + 2, 50, False, libtcod.BKGND_SET,
+    libtcod.console_print_frame(0, 60, 0, INFO_WIDTH + 2, INFO_HEIGHT + 2, False, libtcod.BKGND_SET,
                                 'INFORMATION')
 
+debug = False
+# the list of objects with just the player
+
+def game_splash():
+    libtcod.console_credits()
+
+
+def info_screen():
+
+    libtcod.console_print_ex(infocon, 1, 1, libtcod.BKGND_NONE, libtcod.LEFT,
+                             player.name)
+
+    render_bar(infocon, 1, 3, BAR_WIDTH, 'HP', player.fighter.hp,
+               player.fighter.max_hp, libtcod.white, libtcod.light_red,
+               libtcod.darker_red)
+
+    libtcod.console_print_ex(infocon, 1, 4, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'POW: ' + str(player.fighter.power) + ' (' +
+                             str(player.fighter.power) + ')')
+    libtcod.console_print_ex(infocon, 1, 5, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'DEF: ' + str(player.fighter.defense) + ' (' +
+                             str(player.fighter.defense) + ')')
+
+    libtcod.console_hline(infocon, 0, 7, INFO_WIDTH, libtcod.BKGND_NONE)
+
+
+def new_game():
+    global player, inventory, game_msgs, game_state
+
+    # create object representing the player
+    fighter_component = Fighter(hp=30, defense=2, power=5,
+                                death_function=player_death)
+    player = Object(0, 0, '@', 'Player', player_color, player_back, blocks=True,
+                    fighter=fighter_component)
+
+    # generate map (at this point it's not drawn to the screen)
+    make_map()
+    initialize_fov()
+
+    game_state = 'playing'
+    inventory = []
+
+    game_msgs = []
+
+    message('Your village is in danger find the McGuffin to save it!' +
+            ' If you can...')
+
+def initialize_fov():
+    global fov_recompute, fov_map
+
+    fov_recompute = True
+
+    # create the FOV map, according to the generated map
+    fov_map = libtcod.map_new(MAP_WIDTH, MAP_HEIGHT)
+    for y in range(MAP_HEIGHT):
+        for x in range(MAP_WIDTH):
+            libtcod.map_set_properties(fov_map, x, y, not map[x][y].block_sight,
+                                       not map[x][y].blocked)
+
+def play_game():
+    global camera_x, camera_y, key, mouse
+
+    player_action = None
+    mouse = libtcod.Mouse()
+    key = libtcod.Key()
+
+    (camera_x, camera_y) = (0, 0)
+
+    while not libtcod.console_is_window_closed():
+
+        libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE,
+                                key, mouse)
+
+        # render the screen
+        render_all()
+
+        libtcod.console_flush()
+
+        # erase all objects at their old locations, before they move
+        for object in objects:
+            object.clear()
+
+        # handle keys and exit game if needed
+        player_action = handle_keys()
+        if player_action == 'exit':
+            break
+
+        # let monsters take their turn
+        if game_state == 'playing' and player_action != 'didnt-take-turn':
+            for object in objects:
+                if object.ai:
+                    object.ai.take_turn()
+
+def main_menu():
+    img = libtcod.image_load('test.png')
+
+    while not libtcod.console_is_window_closed():
+        libtcod.image_blit_2x(img, 0, 0, 0)
+
+        choice = menu('', '', ['Play a new game', 'Continue last game',
+                               'Options', 'Quit'], 24)
+
+        if choice == 0:
+            new_game()
+            play_game()
+        elif choice == 3:
+            break
+
+
+libtcod.console_set_custom_font('cp437_10x10.png',
+                                libtcod.FONT_TYPE_GREYSCALE |
+                                libtcod.FONT_LAYOUT_ASCII_INROW)
+
+libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, GAME_TITLE + ' ' +
+                          GAME_VER, False)
+
+libtcod.sys_set_fps(LIMIT_FPS)
+
+
+libtcod.console_set_default_foreground(0, con_fore_color)
+libtcod.console_set_default_background(0, con_back_color)
 
 mapcon = libtcod.console_new(MAP_WIDTH, MAP_HEIGHT)
 
 lookcon = libtcod.console_new(LOOK_WIDTH, LOOK_HEIGHT)
-libtcod.console_set_default_foreground(lookcon, con_fore_color)
-libtcod.console_set_default_background(lookcon, con_back_color)
+# libtcod.console_set_default_foreground(lookcon, con_fore_color)
+# libtcod.console_set_default_background(lookcon, con_back_color)
 # libtcod.console_rect(lookcon, 0, 0, LOOK_WIDTH, LOOK_HEIGHT, True,
 #                     libtcod.BKGND_SET)
 
 msgcon = libtcod.console_new(MSG_WIDTH, MSG_HEIGHT)
-libtcod.console_set_default_foreground(msgcon, con_fore_color)
-libtcod.console_set_default_background(msgcon, con_back_color)
+# libtcod.console_set_default_foreground(msgcon, con_fore_color)
+# libtcod.console_set_default_background(msgcon, con_back_color)
 # libtcod.console_rect(msgcon, 0, 0, MSG_WIDTH, MSG_HEIGHT, True,
 #                     libtcod.BKGND_SET)
 
 infocon = libtcod.console_new(INFO_WIDTH, INFO_HEIGHT)
-libtcod.console_set_default_foreground(infocon, con_fore_color)
-libtcod.console_set_default_background(infocon, con_back_color)
+# libtcod.console_set_default_foreground(infocon, con_fore_color)
+# libtcod.console_set_default_background(infocon, con_back_color)
 # libtcod.console_rect(infocon, 0, 0, INFO_WIDTH, INFO_HEIGHT, True,
 #                     libtcod.BKGND_SET)
 
 debug = libtcod.console_new(40, 50)
-
-# create object representing the player
-fighter_component = Fighter(hp=30, defense=2, power=5,
-                            death_function=player_death)
-player = Object(0, 0, '@', 'Player', player_color, player_back, blocks=True,
-                fighter=fighter_component)
-(camera_x, camera_y) = (0, 0)
-mouse = libtcod.Mouse()
-key = libtcod.Key()
-debug = False
-# the list of objects with just the player
-objects = [player]
-
-# generate map (at this point it's not drawn to the screen)
-make_map()
-
-# create the FOV map, according to the generated map
-fov_map = libtcod.map_new(MAP_WIDTH, MAP_HEIGHT)
-for y in range(MAP_HEIGHT):
-    for x in range(MAP_WIDTH):
-        libtcod.map_set_properties(fov_map, x, y, not map[x][y].block_sight,
-                                   not map[x][y].blocked)
-
-fov_recompute = True
-game_state = 'playing'
-player_action = None
-
-inventory = []
-
-game_msgs = []
-
-message('Your village is in danger find the McGuffin to save it!' +
-        ' If you can...')
-
-while not libtcod.console_is_window_closed():
-
-    libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE,
-                                key, mouse)
-
-    # render the screen
-    render_all()
-
-    libtcod.console_flush()
-
-    # erase all objects at their old locations, before they move
-    for object in objects:
-        object.clear()
-
-    # handle keys and exit game if needed
-    player_action = handle_keys()
-    if player_action == 'exit':
-        break
-
-    # let monsters take their turn
-    if game_state == 'playing' and player_action != 'didnt-take-turn':
-        for object in objects:
-            if object.ai:
-                object.ai.take_turn()
+game_splash()
+main_menu()
