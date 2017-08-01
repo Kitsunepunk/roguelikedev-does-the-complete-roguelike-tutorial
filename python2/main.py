@@ -4,14 +4,14 @@ import textwrap
 
 # game constants
 GAME_TITLE = 'Quest of the McGuffin'
-GAME_VER = '2017.07.20'
+GAME_VER = '2017.07.22'
 
 # actual size of the window
 SCREEN_WIDTH = 80
 SCREEN_HEIGHT = 50
 
-CAM_WIDTH = 58
-CAM_HEIGHT = 38
+CAM_WIDTH = 60
+CAM_HEIGHT = 40
 
 # size of the map
 MAP_MIN_SIZE = 70
@@ -53,6 +53,12 @@ BAR_WIDTH = 16
 INVENTORY_WIDTH = 50
 
 heal = 4
+lightning = 20
+fireball = 12
+LIGHTNING_RANGE = 5
+CONFUSE_NUM_TURNS = 10
+CONFUSE_RANGE = 8
+FIREBALL_RADIUS = 6
 
 con_fore_color = libtcod.white
 con_back_color = libtcod.black
@@ -67,7 +73,7 @@ obj_back = libtcod.black
 player_color = libtcod.black
 player_back = libtcod.green
 
-warning_color = libtcod.green
+warning_color = libtcod.pink
 
 
 class Tile:
@@ -178,6 +184,9 @@ class Object:
         dy = other.y - self.y
         return math.sqrt(dx ** 2 + dy ** 2)
 
+    def distance(self, x, y):
+        return math.sqrt((x - self.x) ** 2 + (y - self.y) ** 2)
+
     def send_to_back(self):
         # make this object be drawn first, so all others appear above
         # it if they're in the same tile
@@ -267,6 +276,25 @@ class BasicMonster:
                 monster.fighter.attack(player)
 
 
+class ConfusedMonster:
+    # AI for a temporarily confused monster (reverts to previous AI)
+
+    def __init__(self, old_ai, num_turns=CONFUSE_NUM_TURNS):
+        self.old_ai = old_ai
+        self.num_turns = num_turns
+
+    def take_turn(self):
+        if self.num_turns > 0:
+            self.owner.move(libtcod.random_get_int(0, -1, 1),
+                            libtcod.random_get_int(0, -1, 1))
+            self.num_turns -= 1
+
+        else:
+            self.owner.ai = self.old_ai
+            message('The ' + self.owner.name + ' is no longer confused!',
+                    libtcod.red)
+
+
 class Item:
     # an item that can be picked up and used
 
@@ -277,17 +305,26 @@ class Item:
         # add to the player's inventory and remove from the map
         if len(inventory) >= 26:
             message('Your inventory is full, cannot pick up ' +
-                    self.owner.name + '.', libtcod.darker_red)
+                    self.owner.name + '.', warning_color)
         else:
             inventory.append(self.owner)
             objects.remove(self.owner)
             message('You picked up a ' + self.owner.name + '!',
                     self.owner.color)
 
+    def drop(self):
+        
+        objects.append(self.owner)
+        inventory.remove(self.owner)
+        self.owner.x = player.x
+        self.owner.y = player.y
+        message('You dropped a ' + self.owner.name + '.', libtcod.yellow)
+
     def use(self):
 
         if self.use_function is None:
-            message('The ' + self.owner.name + ' cannot be used')
+            message('The ' + self.owner.name + ' cannot be used',
+                    warning_color)
         else:
             if self.use_function() != 'cancelled':
                 inventory.remove(self.owner)
@@ -439,10 +476,30 @@ def place_objects(room):
 
         # only place it if the tile is not blocked
         if not is_blocked(x, y):
-            # create a healing potion
-            item_component = Item(cast_heal)
-            item = Object(x, y, 173, 'Healing Potion', libtcod.red,
-                          con_back_color, item=item_component)
+            dice = libtcod.random_get_int(0, 0, 100)
+            if dice < 70:
+                # create a healing potion
+
+                item_component = Item(cast_heal)
+                item = Object(x, y, 173, 'Healing Potion', libtcod.violet,
+                              obj_back, item=item_component)
+            elif dice < 70 + 10:
+                # create a lightning bolt scroll (30% chance)
+                item_component = Item(cast_lightning)
+
+                item = Object(x, y, 19, 'scroll of lightning bolt',
+                              libtcod.sky, obj_back,
+                              item=item_component)
+
+            elif dice < 70 + 10 + 10:
+                item_component = Item(cast_fireball)
+                item = Object(x, y, 19, 'Scroll of Fireball', libtcod.flame,
+                              obj_back, item=item_component)
+
+            else:
+                item_component = Item(cast_confuse)
+                item = Object(x, y, 19, 'Scroll of Confusion', libtcod.green,
+                              obj_back, item=item_component)
 
             objects.append(item)
             item.send_to_back()  # items appear below other objects
@@ -478,7 +535,7 @@ def get_names_under_mouse():
 
     # return a string with the names of all objects under the mouse
     (x, y) = (mouse.cx, mouse.cy)
-    (x, y) = (camera_x + x - 1, camera_y + y - 1)
+    (x, y) = (camera_x + x, camera_y + y)
 
     # create a list with the names of all objects at the mouse's
     # coordinates and in FOV
@@ -525,7 +582,7 @@ def to_camera_coordiantes(x, y):
 def render_all():
     global fov_map, color_dark_wall, color_light_wall
     global color_dark_ground, color_light_ground
-    global fov_recompute
+    global fov_recompute, debug
 
     move_camera(player.x, player.y)
 
@@ -578,21 +635,17 @@ def render_all():
 
     player.draw()
 
+#    if debug is True:
+#        libtcod.console_blit(debug, 0, 0, 40, 50, 0, 1, 1, 0.7, 0.5)
+
     # blit the contents of "con" to the root console
-    libtcod.console_blit(mapcon, 0, 0, MAP_WIDTH, MAP_HEIGHT, 0, 1, 1)
+    libtcod.console_blit(mapcon, 0, 0, MAP_WIDTH, MAP_HEIGHT, 0, 0, 0)
 
     libtcod.console_set_default_foreground(lookcon, libtcod.white)
     libtcod.console_clear(lookcon)
     libtcod.console_print_ex(lookcon, 0, 0, libtcod.BKGND_NONE, libtcod.LEFT,
                              get_names_under_mouse())
-                             # ('mp:' + str((mouse.cx, mouse.cy)) +
-                             # 'cp+mp:' + str((camera_x + mouse.cx,
-                             # camera_y + mouse.cy)) +
-                             # 'pp:' +str((player.x, player.y)) + 'cp+pp'
-                             # + str((camera_x + player.x, camera_y +
-                             #  player.y))
-                             # + ' ' + str(libtcod.map_is_in_fov(fov_map,
-                             # mouse.cx, mouse.cy)) + ' ' + ))
+                             # ('mp:'
     libtcod.console_blit(lookcon, 0, 0, LOOK_WIDTH, LOOK_HEIGHT, 0, 1, 41)
 
     libtcod.console_set_default_background(msgcon, con_back_color)
@@ -629,6 +682,27 @@ def render_all():
     libtcod.console_print_ex(infocon, 1, 5, libtcod.BKGND_NONE, libtcod.LEFT,
                              'Def: ' + str(player.fighter.defense) + '(' +
                              str(player.fighter.defense) + ')')
+    libtcod.console_print_ex(debug, 1, 1, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'M.Pos.:(' + str((mouse.cx, mouse.cy)) + ')')
+    libtcod.console_print_ex(debug, 1, 2, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'C.P.+M.P.:' +
+                             str((camera_x + mouse.cx, camera_y + mouse.cy)))
+    libtcod.console_print_ex(debug, 1, 3, libtcod.BKGND_NONE, libtcod.LEFT,
+                             '@.Pos:' + str((player.x, player.y)))
+    libtcod.console_print_ex(debug, 1, 4, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'C.P.+@.P.:' +
+                             str((camera_x + player.x, camera_y + player.y)))
+    libtcod.console_print_ex(debug, 1, 5, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'in FOV: ' +
+                             str(libtcod.map_is_in_fov(fov_map, camera_x + mouse.cx,
+                                                       mouse.cy +
+                                                       camera_y)))
+    libtcod.console_print_ex(debug, 1, 6, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'L.b.click: ' + str(mouse.lbutton_pressed))
+    libtcod.console_print_ex(debug, 1, 7, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'R.b.click: ' + str(mouse.rbutton_pressed))
+    libtcod.console_print_ex(debug, 1, 8, libtcod.BKGND_NONE, libtcod.LEFT,
+                             '@.dist(M.pos):' + str(int(player.distance(mouse.cx,mouse.cy))))
 
     libtcod.console_blit(infocon, 0, 0, INFO_WIDTH, INFO_HEIGHT, 0, 61, 1)
 
@@ -693,7 +767,7 @@ def menu(title,header, options, width):
     libtcod.console_print_rect_ex(window, 1, 1, width, height,
                                   libtcod.BKGND_NONE, libtcod.LEFT, header)
 
-    y = header_height + 1
+    y = header_height + 2
     letter_index = ord('a')
     for option_text in options:
         text = '(' + chr(letter_index) + ') ' + option_text
@@ -724,12 +798,13 @@ def inventory_menu(title, header):
 
     index = menu(title, header, options, INVENTORY_WIDTH)
 
-    if index is None or len(inventory) == 0: return None
+    if index is None or len(inventory) == 0:
+        return None
     return inventory[index].item
 
 
 def handle_keys():
-    global key
+    global key, mouse, debug
     # key = libtcod.console_check_for_keypress()  # real-time
     # key = libtcod.console_wait_for_keypress(True)  # turn-based
 
@@ -768,9 +843,20 @@ def handle_keys():
         else:
             key_char = chr(key.c)
 
+            if key_char == 'd':
+
+                chosen_item = inventory_menu('Inventory Menu', 'Press the' +
+                                             ' key next to an Item to drop' +
+                                             ' it, or any other to cancel.\n')
+                if chosen_item is not None:
+                    chosen_item.drop()
+
             if key_char == 'i':
                 # message('testing the inventory key', libtcod.azure)
-                chosen_item = inventory_menu('inventory','Press the key next to an item to use it, or any other to cancel.\n')
+                chosen_item = inventory_menu('Inventory Menu',
+                                             'Press the key next to an item' +
+                                             ' to use it, or any other to' +
+                                             ' cancel.\n')
                 if chosen_item is not None:
                     chosen_item.use()
 
@@ -781,6 +867,13 @@ def handle_keys():
                             object.item):
                         object.item.pick_up()
                         break
+
+            if key_char == '0':
+
+                if debug is True:
+                    debug = False
+                else:
+                    debug = True
 
             return 'didnt-take-turn'
 
@@ -810,6 +903,37 @@ def monster_death(monster):
     monster.name = 'remains of ' + monster.name
     monster.send_to_back()
 
+
+def target_tile(max_range=None):
+    global key, mouse
+
+    while True:
+        libtcod.console_flush()
+        libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS |
+                                    libtcod.EVENT_MOUSE, key, mouse)
+        render_all()
+
+        (x, y) = (mouse.cx, mouse.cy)
+        (x, y) = (mouse.cx + x, mouse.cy + y)
+
+        if mouse.rbutton_pressed or key.vk == libtcod.KEY_ESCAPE:
+            return (None, None)
+
+        if mouse.lbutton_pressed:
+            return (x, y)
+
+
+def target_monster(max_range=None):
+    while True:
+        (x, y) = target_tile(max_range)
+        if x is None:
+            return None
+
+        for obj in objects:
+            if obj.x == x and obj.y == y and obj.fighter and obj != player:
+                return obj
+
+
 def roll_dice(num, sides):
 
     total = 0
@@ -817,27 +941,101 @@ def roll_dice(num, sides):
     run_total = 0
 
     for dice in range(num):
-        #print '--'
+        # print '--'
 
         total = libtcod.random_get_int(0, 1, sides)
         run_total += total
         roll += 1
-        #print str(num) + 'd' + str(sides)
-        #print 'roll:' + str(roll) + ' running total:' +  str(run_total) + ' rolled:' + str(total)
-        #print '--'
+        # print str(num) + 'd' + str(sides)
+        # print 'roll:' + str(roll) + ' running total:' +
+        # str(run_total) + ' rolled:' + str(total)
+        # print '--'
 
-    #print run_total
+    # print run_total
+    # message('your ' + str(num) + 'd' + str(sides) + ' rolled:' +
+    #        str(run_total))
     return run_total
+
+
+def closest_monster(max_range):
+
+    closest_enemy = None
+    closest_dist = max_range + 1
+
+    for object in objects:
+        if (object.fighter and not object == player and
+                libtcod.map_is_in_fov(fov_map, object.x, object.y)):
+            dist = player.distance_to(player)
+            if dist < closest_dist:
+                closest_enemy = object
+                closest_dist = dist
+
+    return closest_enemy
 
 
 def cast_heal():
 
     if player.fighter.hp == player.fighter.max_hp:
-        message('You are already at full health.')
+        message('You are already at full health.', warning_color)
         return 'cancelled'
 
-    player.fighter.heal(roll_dice(1, heal) + heal / 2)
-    message('Your wounds start to fell better!', libtcod.red)
+    # run_total = player.fighter.heal(roll_dice(1, heal) + heal / 2)
+    die_roll = roll_dice(1, heal)
+    base = heal / 2
+    heal_total = die_roll + base
+    player.fighter.heal(heal_total)
+    message('The lesser potion heals 1d' + str(heal) + '+' + str(base) +
+            '(' + str(heal_total) + ') of health', libtcod.violet)
+
+
+def cast_lightning():
+
+    monster = closest_monster(LIGHTNING_RANGE)
+    if monster is None:
+        message('No enemy is close enough to strike.', warning_color)
+        return 'cancelled'
+
+    die_roll = roll_dice(1, lightning)
+    base = lightning / 2
+    total = die_roll + base
+    message('A lightning blolt strikes the ' + monster.name + ' with a loud' +
+            ' thunder! The damage is ' + str((total)) +
+            ' hit points.', libtcod.sky)
+    monster.fighter.take_damage((total))
+
+
+def cast_fireball():
+
+    message('Left-click a target tile for the fireball, or right-click to' +
+            ' cancel.', libtcod.light_cyan)
+
+    (x, y) = target_tile()
+    if x is None:
+        return 'cancelled'
+    message('The fireball explodes, burning everything within ' +
+            str(FIREBALL_RADIUS) + ' tiles!', libtcod.flame)
+
+    for obj in objects:
+        if obj.distance(x, y) <= FIREBALL_RADIUS and obj.fighter:
+            message('The ' + obj.name + ' gets burned for ' +
+                    str(fireball_total) + ' hit points.', libtcod.light_flame)
+            obj.fighter.take_damage(12)
+
+
+def cast_confuse():
+
+    message('Left-click an enemy to confuse it, or right-click to cancel.',
+            libtcod.green)
+
+    monster = target_monster(CONFUSE_RANGE)
+    if monster is None:
+        return 'cancelled'
+
+    old_ai = monster.ai
+    monster.ai = ConfusedMonster(old_ai)
+    monster.ai.owner = monster
+    message('The eyes fo the ' + monster.name + ' look vacant, as he starts' +
+            ' to stumble around!', libtcod.green)
 
 
 #############################################
@@ -858,8 +1056,8 @@ libtcod.console_set_default_background(0, con_back_color)
 #                     libtcod.BKGND_SET)
 def draw_frames():
     #libtcod.console_clear(0)
-    libtcod.console_print_frame(0, 0, 0, 60, MAP_F_HEIGHT,
-                                False, libtcod.BKGND_SET, 'MAP')
+#    libtcod.console_print_frame(0, 0, 0, 60, MAP_F_HEIGHT,
+#                                False, libtcod.BKGND_SET, 'MAP')
     libtcod.console_print_frame(0, 0, 40, LEFT_F_WIDTH, LOOK_F_HEIGHT, False,
                                 libtcod.BKGND_SET, 'LOOK')
     libtcod.console_print_frame(0, 0, 43, LEFT_F_WIDTH, MSG_F_HEIGHT, False,
@@ -868,7 +1066,7 @@ def draw_frames():
                                 'INFORMATION')
 
 
-mapcon = libtcod.console_new(CAM_WIDTH, CAM_HEIGHT)
+mapcon = libtcod.console_new(MAP_WIDTH, MAP_HEIGHT)
 
 lookcon = libtcod.console_new(LOOK_WIDTH, LOOK_HEIGHT)
 libtcod.console_set_default_foreground(lookcon, con_fore_color)
@@ -888,12 +1086,17 @@ libtcod.console_set_default_background(infocon, con_back_color)
 # libtcod.console_rect(infocon, 0, 0, INFO_WIDTH, INFO_HEIGHT, True,
 #                     libtcod.BKGND_SET)
 
+debug = libtcod.console_new(40, 50)
+
 # create object representing the player
 fighter_component = Fighter(hp=30, defense=2, power=5,
                             death_function=player_death)
 player = Object(0, 0, '@', 'Player', player_color, player_back, blocks=True,
                 fighter=fighter_component)
-
+(camera_x, camera_y) = (0, 0)
+mouse = libtcod.Mouse()
+key = libtcod.Key()
+debug = False
 # the list of objects with just the player
 objects = [player]
 
@@ -917,11 +1120,6 @@ game_msgs = []
 
 message('Your village is in danger find the McGuffin to save it!' +
         ' If you can...')
-
-mouse = libtcod.Mouse()
-key = libtcod.Key()
-
-(camera_x, camera_y) = (0, 0)
 
 while not libtcod.console_is_window_closed():
 
