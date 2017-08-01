@@ -52,6 +52,8 @@ BAR_WIDTH = 16
 
 INVENTORY_WIDTH = 50
 
+MENU_IMG = 'menu.png'
+
 heal = 4
 lightning = 20
 fireball = 12
@@ -736,12 +738,12 @@ def menu(title, header, options, width):
     libtcod.console_set_default_background(window, con_back_color)
 
     if header != '':
-
+        libtcod.console_print_frame(window, 0, 0, width, height, True,
+                                    libtcod.BKGND_SET, title)
         libtcod.console_hline(window, 1, 3, width - 2, libtcod.BKGND_SET)
         libtcod.console_print_rect_ex(window, 1, 1, width, height,
                                       libtcod.BKGND_SET, libtcod.LEFT, header)
-        libtcod.console_print_frame(window, 0, 0, width, height, True,
-                                    libtcod.BKGND_SET, title)
+
     else:
         libtcod.console_print_rect_ex(window, 1, 1, width, height,
                                       libtcod.BKGND_SET, libtcod.LEFT, header)
@@ -1166,7 +1168,7 @@ def play_game():
                     object.ai.take_turn()
 
 def main_menu():
-    img = libtcod.image_load('test.png')
+    img = libtcod.image_load(MENU_IMG)
 
     while not libtcod.console_is_window_closed():
         libtcod.image_blit_2x(img, 0, 0, 0)
