@@ -24,8 +24,6 @@ MAP_HEIGHT = 40 # libtcod.random_get_int(0, MAP_MIN_SIZE, MAP_MAX_SIZE)
 ROOM_MAX_SIZE = 10
 ROOM_MIN_SIZE = 6
 MAX_ROOMS = 30
-MAX_ROOM_MONSTERS = 3
-MAX_ROOM_ITEMS = 2
 
 LEFT_F_WIDTH = 60
 MAP_F_HEIGHT = 40
@@ -59,9 +57,9 @@ LEVEL_SCREEN_WIDTH = 40
 
 MENU_IMG = 'menu.png'
 
-heal = 4
-lightning = 20
-fireball = 12
+heal = 40
+lightning = 40
+fireball = 25
 LIGHTNING_RANGE = 5
 CONFUSE_NUM_TURNS = 10
 CONFUSE_RANGE = 8
@@ -120,7 +118,8 @@ class Object:
     # this is a generic object: the player, a monster, an item, the stairs...
     # it's always represented by a character on screen.
     def __init__(self, x, y, char, name, color, color2, blocks=False,
-                 always_visible=False, fighter=None, ai=None, item=None):
+                 always_visible=False, fighter=None, ai=None, item=None,
+                 equipment=None):
         self.x = x
         self.y = y
         self.char = char
@@ -139,6 +138,13 @@ class Object:
 
         self.item = item
         if self.item:  # let the Item component know who owns it
+            self.item.owner = self
+
+        self.equipment = equipment
+        if self.equipment:
+            self.equipment.owner = self
+
+            self.item = Item()
             self.item.owner = self
 
     def move(self, dx, dy):
@@ -328,7 +334,14 @@ class Item:
             message('You picked up a ' + self.owner.name + '!',
                     self.owner.color)
 
+            equipment = self.owner.equipment
+            if equipment and get_equipped_in_slot(equipment.slot) is None:
+                equipment.equip()
+
     def drop(self):
+
+        if self.owner.equipment:
+            self.owner.equipment.dequip()
 
         objects.append(self.owner)
         inventory.remove(self.owner)
@@ -338,12 +351,60 @@ class Item:
 
     def use(self):
 
+        if self.owner.equipment:
+            self.owner.equipment.toggle_equip()
+            return
+
         if self.use_function is None:
             message('The ' + self.owner.name + ' cannot be used',
                     warning_color)
         else:
             if self.use_function() != 'cancelled':
                 inventory.remove(self.owner)
+
+
+class Equipment:
+
+    def __init__(self, slot):
+        self.slot = slot
+        self.is_equipped = False
+
+    def toggle_equip(self):
+        if self.is_equipped:
+            self.dequip()
+        else:
+            self.equip()
+
+    def equip(self):
+
+        old_equipment = get_equipped_in_slot(self.slot)
+        if old_equipment is not None:
+            old_equipment.dequip()
+
+
+        self.is_equipped = True
+        message('Equipped ' + self.owner.name + ' on ' + self.slot + '.',
+                libtcod.light_green)
+
+    def dequip(self):
+        if not self.is_equipped: return
+        self.is_equipped = False
+        message('Dequipped ' + self.owner.name + ' from ' + self.slot + '.',
+                libtcod.light_yellow)
+
+
+def get_equipped_in_slot(slot):
+    for obj in inventory:
+        if obj.equipment and obj.equipment.slot == slot and obj.equipment.is_equipped:
+            return obj.equipment
+    return None
+
+def get_equipped(slot):
+    for obj in inventory:
+        if obj.equipment and obj.equipment.slot == slot and obj.equipment.is_equipped:
+            return obj.name.capitalize()
+    return 'empty'.capitalize()
+
 
 
 def is_blocked(x, y):
@@ -487,7 +548,7 @@ def make_map():
             # finally, append the new room to the list
             rooms.append(new_room)
             num_rooms += 1
-    
+
     stairs = Object(new_x, new_y, '<', 'stairs', libtcod.white, libtcod.black,
                     always_visible=True)
     objects.append(stairs)
@@ -496,7 +557,22 @@ def make_map():
 
 def place_objects(room):
     # choose random number of monsters
-    num_monsters = libtcod.random_get_int(0, 0, MAX_ROOM_MONSTERS)
+    max_monsters = from_dungeon_level([[2, 1], [3, 4], [5, 6]])
+
+    monster_chances = {}
+    monster_chances['orc']  = 80
+    monster_chances['troll'] = from_dungeon_level([[15, 3], [30, 5], [60, 7]])
+
+    max_items = from_dungeon_level([[1, 1],[2, 4]])
+
+    item_chances = {}
+    item_chances['sword'] = 25
+    item_chances['heal'] = 35
+    item_chances['lightning'] = from_dungeon_level([[25, 4]])
+    item_chances['fireball'] = from_dungeon_level([[25, 6]])
+    item_chances['confuse'] = from_dungeon_level([[10, 2]])
+
+    num_monsters = libtcod.random_get_int(0, 0, max_monsters)
 
     for i in range(num_monsters):
         # choose random spot for this monster
@@ -505,18 +581,19 @@ def place_objects(room):
 
         # only place it if the tile is not blocked
         if not is_blocked(x, y):
+            choice = random_choice(monster_chances)
             # 80% chance of getting an orc
-            if libtcod.random_get_int(0, 0, 100) < 80:
+            if choice == 'orc':
                 # create an orc
-                fighter_component = Fighter(hp=10, defense=0, power=3, xp=35,
+                fighter_component = Fighter(hp=20, defense=0, power=4, xp=35,
                                             death_function=monster_death)
                 ai_component = BasicMonster()
                 monster = Object(x, y, 'o', 'Orc', libtcod.desaturated_green,
                                  obj_back, blocks=True,
                                  fighter=fighter_component, ai=ai_component)
-            else:
+            elif choice == 'troll':
                 # create a troll
-                fighter_component = Fighter(hp=16, defense=1, power=4, xp=100,
+                fighter_component = Fighter(hp=30, defense=2, power=4, xp=100,
                                             death_function=monster_death)
                 ai_component = BasicMonster()
                 monster = Object(x, y, 'T', 'Troll', libtcod.darker_green,
@@ -525,7 +602,7 @@ def place_objects(room):
 
             objects.append(monster)
 
-    num_items = libtcod.random_get_int(0, 0, MAX_ROOM_ITEMS)
+    num_items = libtcod.random_get_int(0, 0, max_items)
 
     for i in range(num_items):
         # choose random number of items
@@ -534,15 +611,15 @@ def place_objects(room):
 
         # only place it if the tile is not blocked
         if not is_blocked(x, y):
-            dice = libtcod.random_get_int(0, 0, 100)
-            if dice < 70:
+            choice = random_choice(item_chances)
+            if choice == 'heal':
                 # create a healing potion
 
                 item_component = Item(cast_heal)
                 item = Object(x, y, 173, 'Healing Potion', libtcod.violet,
                               obj_back, always_visible=True,
                               item=item_component)
-            elif dice < 70 + 10:
+            elif choice == 'lightning':
                 # create a lightning bolt scroll (30% chance)
                 item_component = Item(cast_lightning)
 
@@ -550,20 +627,53 @@ def place_objects(room):
                               libtcod.sky, obj_back, always_visible=True,
                               item=item_component)
 
-            elif dice < 70 + 10 + 10:
+            elif choice == 'fireball':
                 item_component = Item(cast_fireball)
                 item = Object(x, y, 19, 'Scroll of Fireball', libtcod.flame,
                               obj_back, always_visible=True,
                               item=item_component)
 
-            else:
+            elif choice == 'confuse':
                 item_component = Item(cast_confuse)
                 item = Object(x, y, 19, 'Scroll of Confusion', libtcod.green,
                               obj_back, always_visible=True,
                               item=item_component)
 
+            elif choice == 'sword':
+                equipment_component = Equipment(slot='right hand')
+                item = Object(x, y, '/', 'sword', libtcod.sky, obj_back,
+                              always_visible=True,
+                              equipment=equipment_component)
+
             objects.append(item)
             item.send_to_back()  # items appear below other objects
+
+
+def random_choice_index(chances):
+
+    dice = libtcod.random_get_int(0, 1, sum(chances))
+
+    running_sum = 0
+    choice = 0
+    for w in chances:
+        running_sum += w
+
+        if dice <= running_sum:
+            return choice
+        choice += 1
+
+def random_choice(chances_dict):
+    chances = chances_dict.values()
+    strings = chances_dict.keys()
+
+    return strings[random_choice_index(chances)]
+
+def from_dungeon_level(table):
+
+    for (value, level) in reversed(table):
+        if dungeon_level >= level:
+            return value
+    return 0
 
 
 def render_bar(con, x, y, total_width, name, value, max_value, text_color,
@@ -864,7 +974,12 @@ def inventory_menu(title, header):
     if len(inventory) == 0:
         options = ['Inventory is empty.']
     else:
-        options = [item.name for item in inventory]
+        options = []
+        for item in inventory:
+            text = item.name
+            if item.equipment and item.equipment.is_equipped:
+                text = text + ' (on ' + item.equipment.slot + ')'
+            options.append(text)
 
     index = menu(title, header, options, INVENTORY_WIDTH)
 
@@ -938,9 +1053,11 @@ def handle_keys():
                         object.item.pick_up()
                         break
 
-            if key_char == ',':
-                if stairs.x == player.x and stairs.y == player.y:
-                    next_level()
+            if key.vk == libtcod.KEY_TEXT:
+                ch = key.text
+                if ch == '<':
+                    if stairs.x == player.x and stairs.y == player.y:
+                        next_level()
             return 'didnt-take-turn'
 
 
@@ -1182,6 +1299,9 @@ def info_screen():
                              'Total Items: ' + str(len(inventory)))
     libtcod.console_hline(infocon, 0, 12, INFO_WIDTH, libtcod.BKGND_NONE)
 
+    libtcod.console_print_ex(infocon, 1, 14, libtcod.BKGND_NONE, libtcod.LEFT,
+                             get_equipped('right hand'))
+
 
 def save_game():
     file = shelve.open('sg', 'n')
@@ -1218,7 +1338,7 @@ def new_game():
     global player, inventory, game_msgs, game_state, dungeon_level
 
     # create object representing the player
-    fighter_component = Fighter(hp=30, defense=2, power=5, xp=0,
+    fighter_component = Fighter(hp=100, defense=1, power=4, xp=0,
                                 death_function=player_death)
     player = Object(0, 0, '@', 'Player', player_color, player_back,
                     blocks=True, fighter=fighter_component)
