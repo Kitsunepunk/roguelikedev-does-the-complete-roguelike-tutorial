@@ -5,7 +5,7 @@ import shelve
 
 # game constants
 GAME_TITLE = 'Quest of the McGuffin'
-GAME_VER = '2017.08.01'
+GAME_VER = '2017.08.03'
 
 # actual size of the window
 SCREEN_WIDTH = 80
@@ -65,6 +65,15 @@ CONFUSE_NUM_TURNS = 10
 CONFUSE_RANGE = 8
 FIREBALL_RADIUS = 3
 
+HEAD_SLOT = 'Head'
+CHEST_SLOT = 'Chest'
+RIGHT_ARM = 'R.Arm'
+RIGHT_HAND = 'R.Hand'
+LEFT_ARM = 'L.Arm'
+LEFT_HAND = 'L.Hand'
+LEG_SLOT = 'Legs'
+BOOT_SLOT = 'Boots'
+
 con_fore_color = libtcod.white
 con_back_color = libtcod.black
 
@@ -79,6 +88,8 @@ player_color = libtcod.black
 player_back = libtcod.green
 
 warning_color = libtcod.pink
+
+wall_char = '#'  # 206
 
 
 class Tile:
@@ -247,6 +258,16 @@ class Fighter:
         bonus = sum(equipment.power_bonus for equipment in get_all_equipped(self.owner))
         return self.base_power + bonus
 
+    @property
+    def defense(self):
+        bonus = sum(equipment.defense_bonus for equipment in get_all_equipped(self.owner))
+        return self.base_defense + bonus
+
+    @property
+    def max_hp(self):
+        bonus = sum(equipment.max_hp_bonus for equipment in get_all_equipped(self.owner))
+        return self.base_max_hp + bonus
+
     def attack(self, target):
         # a simple formula for attack damage
         damage = self.power - target.fighter.defense
@@ -264,8 +285,12 @@ class Fighter:
                         libtcod.white)
             target.fighter.take_damage(damage)
         else:
-            message(self.owner.name.capitalize() + ' atttacks ' + target.name +
-                    ' but it has no effect!', self.owner.color)
+            if self.owner.name != 'Player':
+                message(self.owner.name.capitalize() + ' atttacks ' + target.name +
+                        ' but it has no effect!', self.owner.color)
+            else:
+                message(self.owner.name.capitalize() + ' atttacks ' + target.name +
+                        ' but it has no effect!', libtcod.white)
 
     def take_damage(self, damage):
         # apply damage if possible
@@ -414,6 +439,33 @@ def get_equipped(slot):
             return obj.name.capitalize()
     return 'empty'.capitalize()
 
+def get_power_bonus(slot):
+    for obj in inventory:
+        if obj.equipment and obj.equipment.slot == slot and obj.equipment.is_equipped:
+            return str(obj.equipment.power_bonus)
+    return '0'
+
+def get_defense_bonus(slot):
+    for obj in inventory:
+        if obj.equipment and obj.equipment.slot == slot and obj.equipment.is_equipped:
+            return str(obj.equipment.defense_bonus)
+    return '0'
+
+def get_hp_bonus(slot):
+    for obj in inventory:
+        if obj.equipment and obj.equipment.slot == slot and obj.equipment.is_equipped:
+            return str(obj.equipment.max_hp_bonus)
+    return '0'
+
+def get_all_equipped(obj):
+    if obj == player:
+        equipped_list = []
+        for item in inventory:
+            if item.equipment and item.equipment.is_equipped:
+                equipped_list.append(item.equipment)
+        return equipped_list
+    else:
+        return []
 
 
 def is_blocked(x, y):
@@ -449,14 +501,14 @@ def check_level_up():
                           LEVEL_SCREEN_WIDTH)
 
         if choice == 0:
-            player.fighter.max_hp += 20
+            player.fighter.base_max_hp += 20
             player.fighter.hp += 20
             if player.fighter.hp >= player.fighter.max_hp:
                 player.fighter.hp = player.fighter.max_hp
         elif choice == 1:
-            player.fighter.power += 1
+            player.fighter.base_power += 1
         elif choice == 2:
-            player.fighter.defense += 1
+            player.fighter.base_defense += 1
 
 
 def level_formula():
@@ -575,11 +627,12 @@ def place_objects(room):
     max_items = from_dungeon_level([[1, 1],[2, 4]])
 
     item_chances = {}
-    item_chances['sword'] = 25
     item_chances['heal'] = 35
     item_chances['lightning'] = from_dungeon_level([[25, 4]])
-    item_chances['fireball'] = from_dungeon_level([[25, 6]])
-    item_chances['confuse'] = from_dungeon_level([[10, 2]])
+    item_chances['fireball'] =  from_dungeon_level([[25, 6]])
+    item_chances['confuse'] =   from_dungeon_level([[10, 2]])
+    item_chances['sword'] =     from_dungeon_level([[5, 4]])
+    item_chances['shield'] =    from_dungeon_level([[15, 8]])
 
     num_monsters = libtcod.random_get_int(0, 0, max_monsters)
 
@@ -649,9 +702,16 @@ def place_objects(room):
                               item=item_component)
 
             elif choice == 'sword':
-                equipment_component = Equipment(slot='right hand')
+                equipment_component = Equipment(slot=RIGHT_HAND,
+                                                power_bonus=3)
                 item = Object(x, y, '/', 'sword', libtcod.sky, obj_back,
                               always_visible=True,
+                              equipment=equipment_component)
+
+            elif choice == 'shield':
+                equipment_component = Equipment(slot=LEFT_HAND,
+                                                defense_bonus=1)
+                item = Object(x, y, '[', 'shield', libtcod.darker_orange, obj_back,
                               equipment=equipment_component)
 
             objects.append(item)
@@ -788,7 +848,7 @@ def render_all():
                     # see it if it's explored
                     if map[map_x][map_y].explored:
                         if wall:
-                            libtcod.console_put_char_ex(mapcon, x, y, '#',
+                            libtcod.console_put_char_ex(mapcon, x, y, wall_char,
                                                         color_dark_wall,
                                                         color_dark_back)
                         else:
@@ -798,7 +858,7 @@ def render_all():
                 else:
                     # it's visible
                     if wall:
-                        libtcod.console_put_char_ex(mapcon, x, y, '#',
+                        libtcod.console_put_char_ex(mapcon, x, y, wall_char,
                                                     color_light_wall,
                                                     libtcod.black)
                     else:
@@ -1081,6 +1141,7 @@ def next_level():
     dungeon_level += 1
     make_map()
     initialize_fov()
+    save_game()
 
 
 def player_death(player):
@@ -1093,6 +1154,7 @@ def player_death(player):
     player.char = '%'
     player.color = libtcod.dark_red
     player.color2 = libtcod.black
+    save_game()
 
 
 def monster_death(monster):
@@ -1283,7 +1345,7 @@ def msgbox(title, text, width=55):
 
 
 def info_screen():
-
+    libtcod.console_set_default_foreground(infocon, libtcod.white)
     libtcod.console_print_ex(infocon, 1, 1, libtcod.BKGND_NONE, libtcod.LEFT,
                              player.name + ' level: ' + str(player.level))
 
@@ -1292,31 +1354,52 @@ def info_screen():
                libtcod.darker_red)
 
     libtcod.console_print_ex(infocon, 1, 6, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'POW(MOD): ' + str(player.fighter.power) + '(' +
+                             'POW(MOD): ' + str(player.fighter.base_power) + '(' +
                              str(player.fighter.power) + ')')
     libtcod.console_print_ex(infocon, 1, 7, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'DEF(MOD): ' + str(player.fighter.defense) + '(' +
+                             'DEF(MOD): ' + str(player.fighter.base_defense) + '(' +
                              str(player.fighter.defense) + ')')
     render_bar(infocon, 1, 5, BAR_WIDTH, 'XP', player.fighter.xp,
                level_formula(), libtcod.white, libtcod.light_green,
                libtcod.darker_green)
     libtcod.console_print_ex(infocon, 1, 8, libtcod.BKGND_NONE, libtcod.LEFT,
                              'Dungeon Level: ' + str(dungeon_level))
-    libtcod.console_print_ex(infocon, 1, 10, libtcod.BKGND_NONE, libtcod.LEFT,
+    libtcod.console_print_ex(infocon, 1, INFO_HEIGHT - 2, libtcod.BKGND_NONE, libtcod.LEFT,
                              'Inventory')
-    libtcod.console_print_ex(infocon, 1, 11, libtcod.BKGND_NONE, libtcod.LEFT,
+    libtcod.console_print_ex(infocon, 1, INFO_HEIGHT - 1, libtcod.BKGND_NONE, libtcod.LEFT,
                              'Total Items: ' + str(len(inventory)))
-    libtcod.console_hline(infocon, 0, 12, INFO_WIDTH, libtcod.BKGND_NONE)
+    libtcod.console_hline(infocon, 0, 9, INFO_WIDTH, libtcod.BKGND_NONE)
+    libtcod.console_hline(infocon, 0, INFO_HEIGHT - 3, INFO_WIDTH, libtcod.BKGND_NONE)
 
-    # libtcod.consoleprint
-    display_slot(infocon, 1, 14, 'right hand')
+    libtcod.console_print_ex(infocon, 1, 10, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'Equipment:')
+    display_slot(infocon, 1, 12, HEAD_SLOT)
+    display_slot(infocon, 10, 12, CHEST_SLOT)
+    display_slot(infocon, 1, 18, RIGHT_ARM)
+    display_slot(infocon, 10, 18, RIGHT_HAND)
+    display_slot(infocon, 1, 24, LEFT_ARM)
+    display_slot(infocon, 10, 24, LEFT_HAND)
+    display_slot(infocon, 1, 30, LEG_SLOT)
+    display_slot(infocon, 10, 30, BOOT_SLOT)
 
 
 def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
                  alignment=libtcod.LEFT):
-    libtcod.console_print_ex(con, x, y, background, alignment, slot + ':')
+    libtcod.console_set_default_foreground(infocon, libtcod.white)
+
+    libtcod.console_print_ex(con, x, y, background, alignment, slot.capitalize() + ':')
+    libtcod.console_set_default_foreground(con, libtcod.light_han)
     libtcod.console_print_ex(con, x, y + 1, background, alignment,
-                             get_equipped('right hand'))
+                             get_equipped(slot))
+    libtcod.console_set_default_foreground(con, libtcod.light_red)
+    libtcod.console_print_ex(con, x, y + 2, background, alignment,
+                             'HP : ' + get_hp_bonus(slot))
+    libtcod.console_set_default_foreground(con, libtcod.light_orange)
+    libtcod.console_print_ex(con, x, y + 3, background, alignment,
+                             'POW: ' + get_power_bonus(slot))
+    libtcod.console_set_default_foreground(con, libtcod.light_azure)
+    libtcod.console_print_ex(con, x, y + 4, background, alignment,
+                             'DEF: ' + get_defense_bonus(slot))
 
 
 def save_game():
@@ -1354,7 +1437,7 @@ def new_game():
     global player, inventory, game_msgs, game_state, dungeon_level
 
     # create object representing the player
-    fighter_component = Fighter(hp=100, defense=1, power=4, xp=0,
+    fighter_component = Fighter(hp=100, defense=1, power=2, xp=0,
                                 death_function=player_death)
     player = Object(0, 0, '@', 'Player', player_color, player_back,
                     blocks=True, fighter=fighter_component)
@@ -1373,6 +1456,13 @@ def new_game():
 
     message('Your village is in danger find the McGuffin to save it!' +
             ' If you can...')
+
+    equipment_component = Equipment(slot=RIGHT_HAND, power_bonus=2)
+    obj = Object(0, 0, '-', 'dagger', libtcod.sky, obj_back,
+                 equipment=equipment_component)
+    inventory.append(obj)
+    equipment_component.equip()
+    obj.always_visible = True
 
 
 def initialize_fov():
