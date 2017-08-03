@@ -235,12 +235,17 @@ class Object:
 class Fighter:
     # combat-related properties and methods(monster, player, NPC)
     def __init__(self, hp, defense, power, xp, death_function=None):
-        self.max_hp = hp
+        self.base_max_hp = hp
         self.hp = hp
-        self.defense = defense
-        self.power = power
+        self.base_defense = defense
+        self.base_power = power
         self.xp = xp
         self.death_function = death_function
+
+    @property
+    def power(self):
+        bonus = sum(equipment.power_bonus for equipment in get_all_equipped(self.owner))
+        return self.base_power + bonus
 
     def attack(self, target):
         # a simple formula for attack damage
@@ -365,7 +370,11 @@ class Item:
 
 class Equipment:
 
-    def __init__(self, slot):
+    def __init__(self, slot, power_bonus=0, defense_bonus=0, max_hp_bonus=0):
+        self.power_bonus = power_bonus
+        self.defense_bonus = defense_bonus
+        self.max_hp_bonus = max_hp_bonus
+
         self.slot = slot
         self.is_equipped = False
 
@@ -1282,13 +1291,13 @@ def info_screen():
                player.fighter.max_hp, libtcod.white, libtcod.light_red,
                libtcod.darker_red)
 
-    libtcod.console_print_ex(infocon, 1, 4, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'POW: ' + str(player.fighter.power) + ' (' +
+    libtcod.console_print_ex(infocon, 1, 6, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'POW(MOD): ' + str(player.fighter.power) + '(' +
                              str(player.fighter.power) + ')')
-    libtcod.console_print_ex(infocon, 1, 5, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'DEF: ' + str(player.fighter.defense) + ' (' +
+    libtcod.console_print_ex(infocon, 1, 7, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'DEF(MOD): ' + str(player.fighter.defense) + '(' +
                              str(player.fighter.defense) + ')')
-    render_bar(infocon, 1, 7, BAR_WIDTH, 'XP', player.fighter.xp,
+    render_bar(infocon, 1, 5, BAR_WIDTH, 'XP', player.fighter.xp,
                level_formula(), libtcod.white, libtcod.light_green,
                libtcod.darker_green)
     libtcod.console_print_ex(infocon, 1, 8, libtcod.BKGND_NONE, libtcod.LEFT,
@@ -1299,7 +1308,14 @@ def info_screen():
                              'Total Items: ' + str(len(inventory)))
     libtcod.console_hline(infocon, 0, 12, INFO_WIDTH, libtcod.BKGND_NONE)
 
-    libtcod.console_print_ex(infocon, 1, 14, libtcod.BKGND_NONE, libtcod.LEFT,
+    # libtcod.consoleprint
+    display_slot(infocon, 1, 14, 'right hand')
+
+
+def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
+                 alignment=libtcod.LEFT):
+    libtcod.console_print_ex(con, x, y, background, alignment, slot + ':')
+    libtcod.console_print_ex(con, x, y + 1, background, alignment,
                              get_equipped('right hand'))
 
 
