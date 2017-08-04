@@ -1,11 +1,22 @@
 import libtcodpy as libtcod
 import math
-import textwrap
+import datetime
+import os
 import shelve
+import textwrap
+
 
 # game constants
 GAME_TITLE = 'Quest of the McGuffin'
-GAME_VER = '2017.08.03'
+
+now = datetime.datetime.now()
+day = now.day
+month = now.month
+year = now.month
+hour = now.hour
+minute = now.min
+
+GAME_VER =  ' ' + str(now)
 
 # actual size of the window
 SCREEN_WIDTH = 80
@@ -1128,6 +1139,8 @@ def handle_keys():
                 if ch == '<':
                     if stairs.x == player.x and stairs.y == player.y:
                         next_level()
+            if key.vk == libtcod.KEY_F1:
+                take_screenshot()
             return 'didnt-take-turn'
 
 
@@ -1143,6 +1156,23 @@ def next_level():
     make_map()
     initialize_fov()
     save_game()
+
+shot = 0
+
+def take_screenshot():
+    global shot screenshot_path
+    test = libtcod.image_from_console(0)
+
+    if os.path.exists('screenshots/ss.png'):
+        libtcod.image_save(test, 'screenshots/new.png')
+        os.rename('screenshots/new.png', 'screenshots/ss_%s.png' % shot)
+        shot += 1
+    else:
+        libtcod.image_save(test, 'screenshots/ss.png')
+
+    if os.path.exists('screenshots/new.png'):
+        os.remove('screenshots/new.png')
+
 
 
 def player_death(player):
