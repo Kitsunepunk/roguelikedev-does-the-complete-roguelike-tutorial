@@ -436,8 +436,8 @@ def get_equipped_in_slot(slot):
 def get_equipped(slot):
     for obj in inventory:
         if obj.equipment and obj.equipment.slot == slot and obj.equipment.is_equipped:
-            return obj.name.capitalize()
-    return 'empty'.capitalize()
+            return obj.name
+    return 'empty'
 
 def get_power_bonus(slot):
     for obj in inventory:
@@ -703,7 +703,8 @@ def place_objects(room):
 
             elif choice == 'sword':
                 equipment_component = Equipment(slot=RIGHT_HAND,
-                                                power_bonus=3)
+                                                power_bonus=3, defense_bonus=0,
+                                                max_hp_bonus=0)
                 item = Object(x, y, '/', 'sword', libtcod.sky, obj_back,
                               always_visible=True,
                               equipment=equipment_component)
@@ -1354,22 +1355,24 @@ def info_screen():
                libtcod.darker_red)
 
     libtcod.console_print_ex(infocon, 1, 6, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'POW(MOD): ' + str(player.fighter.base_power) + '(' +
-                             str(player.fighter.power) + ')')
+                             'POW(MOD): ' + str(player.fighter.base_power) +
+                             '(' + str(player.fighter.power) + ')')
     libtcod.console_print_ex(infocon, 1, 7, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'DEF(MOD): ' + str(player.fighter.base_defense) + '(' +
-                             str(player.fighter.defense) + ')')
+                             'DEF(MOD): ' + str(player.fighter.base_defense) +
+                             '(' + str(player.fighter.defense) + ')')
     render_bar(infocon, 1, 5, BAR_WIDTH, 'XP', player.fighter.xp,
                level_formula(), libtcod.white, libtcod.light_green,
                libtcod.darker_green)
     libtcod.console_print_ex(infocon, 1, 8, libtcod.BKGND_NONE, libtcod.LEFT,
                              'Dungeon Level: ' + str(dungeon_level))
-    libtcod.console_print_ex(infocon, 1, INFO_HEIGHT - 2, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'Inventory')
-    libtcod.console_print_ex(infocon, 1, INFO_HEIGHT - 1, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'Total Items: ' + str(len(inventory)))
+    libtcod.console_print_ex(infocon, 1, INFO_HEIGHT - 2, libtcod.BKGND_NONE,
+                             libtcod.LEFT, 'Inventory')
+    libtcod.console_print_ex(infocon, 1, INFO_HEIGHT - 1, libtcod.BKGND_NONE,
+                             libtcod.LEFT, 'Total Items: ' + str(len(inventory)
+                                                                 ))
     libtcod.console_hline(infocon, 0, 9, INFO_WIDTH, libtcod.BKGND_NONE)
-    libtcod.console_hline(infocon, 0, INFO_HEIGHT - 3, INFO_WIDTH, libtcod.BKGND_NONE)
+    libtcod.console_hline(infocon, 0, INFO_HEIGHT - 3, INFO_WIDTH,
+                          libtcod.BKGND_NONE)
 
     libtcod.console_print_ex(infocon, 1, 10, libtcod.BKGND_NONE, libtcod.LEFT,
                              'Equipment:')
@@ -1388,16 +1391,49 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
     libtcod.console_set_default_foreground(infocon, libtcod.white)
 
     libtcod.console_print_ex(con, x, y, background, alignment, slot.capitalize() + ':')
-    libtcod.console_set_default_foreground(con, libtcod.light_han)
+    if get_equipped(slot) == 'empty':
+        libtcod.console_set_default_foreground(con, libtcod.white)
+    else:
+        libtcod.console_set_default_foreground(con, libtcod.light_han)
     libtcod.console_print_ex(con, x, y + 1, background, alignment,
                              get_equipped(slot))
-    libtcod.console_set_default_foreground(con, libtcod.light_red)
+
+    hp_plus = get_hp_bonus(slot)
+    test = get_all_equipped(slot)
+    if hp_plus == 0 or get_equipped(slot) == 'empty':
+        libtcod.console_set_default_foreground(con, libtcod.white)
+    elif hp_plus == 0 and get_equipped(slot) != 'empty':
+        libtcod.console_set_default_foreground(con, libtcod.white)
+    elif hp_plus > 0:
+        libtcod.console_set_default_foreground(con, libtcod.light_red)
+    else:
+        libtcod.console_set_default_foreground(con, libtcod.red)
+
     libtcod.console_print_ex(con, x, y + 2, background, alignment,
                              'HP : ' + get_hp_bonus(slot))
-    libtcod.console_set_default_foreground(con, libtcod.light_orange)
+
+    power_plus = get_power_bonus(slot)
+    test = get_equipped(slot)
+    if power_plus == 0 or get_equipped(slot) == 'empty':
+        libtcod.console_set_default_foreground(con, libtcod.white)
+
+    elif power_plus == 0 and get_equipped(slot) != 'empty':
+        libtcod.console_set_default_foreground(con, libtcod.white)
+    elif power_plus > 0:
+        libtcod.console_set_default_foreground(con, libtcod.light_orange)
+    else:
+        libtcod.console_set_default_foreground(con, libtcod.red)
+
     libtcod.console_print_ex(con, x, y + 3, background, alignment,
                              'POW: ' + get_power_bonus(slot))
-    libtcod.console_set_default_foreground(con, libtcod.light_azure)
+
+    if get_defense_bonus(slot) == 0 or get_equipped(slot) == 'empty':
+        libtcod.console_set_default_foreground(con, libtcod.white)
+    elif get_defense_bonus(slot) > 0 and get_equipped(slot) != 'empty':
+        libtcod.console_set_default_foreground(con, libtcod.light_azure)
+    else:
+        libtcod.console_set_default_foreground(con, libtcod.red)
+
     libtcod.console_print_ex(con, x, y + 4, background, alignment,
                              'DEF: ' + get_defense_bonus(slot))
 
@@ -1457,7 +1493,7 @@ def new_game():
     message('Your village is in danger find the McGuffin to save it!' +
             ' If you can...')
 
-    equipment_component = Equipment(slot=RIGHT_HAND, power_bonus=2)
+    equipment_component = Equipment(slot=RIGHT_HAND, power_bonus=2, defense_bonus=0, max_hp_bonus=0)
     obj = Object(0, 0, '-', 'dagger', libtcod.sky, obj_back,
                  equipment=equipment_component)
     inventory.append(obj)
