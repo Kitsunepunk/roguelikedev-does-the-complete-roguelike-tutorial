@@ -1159,9 +1159,13 @@ def next_level():
 
 shot = 0
 
+
 def take_screenshot():
-    global shot screenshot_path
+    global shot
     test = libtcod.image_from_console(0)
+
+    if not os.path.exists('screenshots/'):
+        os.makedirs('screenshots/')
 
     if os.path.exists('screenshots/ss.png'):
         libtcod.image_save(test, 'screenshots/new.png')
