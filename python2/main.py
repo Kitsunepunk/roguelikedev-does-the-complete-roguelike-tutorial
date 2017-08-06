@@ -12,11 +12,11 @@ GAME_TITLE = 'Quest of the McGuffin'
 now = datetime.datetime.now()
 day = now.day
 month = now.month
-year = now.month
+year = now.year
 hour = now.hour
 minute = now.min
 
-GAME_VER =  ' ' + str(now)
+GAME_VER =  ' ' + str(year) + '.' + str(month) + '.' + str(day)
 
 # actual size of the window
 SCREEN_WIDTH = 80
