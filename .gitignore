@@ -1,3 +1,6 @@
 *.pyc
 .vscode
 .vscode/lauch.json
+*.bat
+screenshots
+python2/sg
