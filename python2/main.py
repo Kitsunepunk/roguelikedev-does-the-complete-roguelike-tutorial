@@ -1426,7 +1426,7 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
 
     libtcod.console_print_ex(con, x, y, background, alignment, slot.capitalize() + ':')
     if get_equipped(slot) == 'empty':
-        libtcod.console_set_default_foreground(con, libtcod.white)
+        libtcod.console_set_default_foreground(con, libtcod.dark_grey)
     else:
         libtcod.console_set_default_foreground(con, libtcod.light_han)
     libtcod.console_print_ex(con, x, y + 1, background, alignment,
@@ -1435,7 +1435,7 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
     hp_plus = get_hp_bonus(slot)
     test = get_all_equipped(slot)
     if hp_plus == 0 or get_equipped(slot) == 'empty':
-        libtcod.console_set_default_foreground(con, libtcod.white)
+        libtcod.console_set_default_foreground(con, libtcod.dark_grey)
     elif hp_plus == 0 and get_equipped(slot) != 'empty':
         libtcod.console_set_default_foreground(con, libtcod.white)
     elif hp_plus > 0:
@@ -1449,7 +1449,7 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
     power_plus = get_power_bonus(slot)
     test = get_equipped(slot)
     if power_plus == 0 or get_equipped(slot) == 'empty':
-        libtcod.console_set_default_foreground(con, libtcod.white)
+        libtcod.console_set_default_foreground(con, libtcod.dark_grey)
 
     elif power_plus == 0 and get_equipped(slot) != 'empty':
         libtcod.console_set_default_foreground(con, libtcod.white)
@@ -1462,7 +1462,7 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
                              'POW: ' + get_power_bonus(slot))
 
     if get_defense_bonus(slot) == 0 or get_equipped(slot) == 'empty':
-        libtcod.console_set_default_foreground(con, libtcod.white)
+        libtcod.console_set_default_foreground(con, libtcod.dark_grey)
     elif get_defense_bonus(slot) > 0 and get_equipped(slot) != 'empty':
         libtcod.console_set_default_foreground(con, libtcod.light_azure)
     else:
