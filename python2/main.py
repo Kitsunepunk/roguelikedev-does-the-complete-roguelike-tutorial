@@ -8,7 +8,7 @@ import textwrap
 # game constants
 GAME_TITLE = 'Quest of the McGuffin'
 
-GAME_VER =  ' 2017.08.08'
+GAME_VER =  ' py2_2017.08.08'
 
 # actual size of the window
 SCREEN_WIDTH = 80
@@ -445,20 +445,20 @@ def get_equipped(slot):
 def get_power_bonus(slot):
     for obj in inventory:
         if obj.equipment and obj.equipment.slot == slot and obj.equipment.is_equipped:
-            return str(obj.equipment.power_bonus)
-    return '0'
+            return obj.equipment.power_bonus
+    return 0
 
 def get_defense_bonus(slot):
     for obj in inventory:
         if obj.equipment and obj.equipment.slot == slot and obj.equipment.is_equipped:
-            return str(obj.equipment.defense_bonus)
-    return '0'
+            return obj.equipment.defense_bonus
+    return 0
 
 def get_hp_bonus(slot):
     for obj in inventory:
         if obj.equipment and obj.equipment.slot == slot and obj.equipment.is_equipped:
-            return str(obj.equipment.max_hp_bonus)
-    return '0'
+            return obj.equipment.max_hp_bonus
+    return 0
 
 def get_all_equipped(obj):
     if obj == player:
@@ -712,7 +712,7 @@ def place_objects(room):
                               always_visible=True,
                               equipment=equipment_component)
 
-            elif choice == 'shield':
+            elif choice == 'Shield':
                 equipment_component = Equipment(slot=LEFT_HAND,
                                                 defense_bonus=1)
                 item = Object(x, y, '[', 'Shield', libtcod.darker_orange, obj_back,
@@ -1424,46 +1424,41 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
     else:
         libtcod.console_set_default_foreground(con, libtcod.light_han)
     libtcod.console_print_ex(con, x, y + 1, background, alignment,
-                             get_equipped(slot))
+                             get_equipped(slot).capitalize())
 
     hp_plus = get_hp_bonus(slot)
-    test = get_all_equipped(slot)
-    if hp_plus == '0' or get_equipped(slot) == 'empty':
+
+    if hp_plus == 0 or get_equipped(slot) == 'empty':
         libtcod.console_set_default_foreground(con, libtcod.dark_grey)
-    elif hp_plus == 0 and get_equipped(slot) != 'empty':
-        libtcod.console_set_default_foreground(con, libtcod.white)
     elif hp_plus > 0:
         libtcod.console_set_default_foreground(con, libtcod.light_red)
     else:
         libtcod.console_set_default_foreground(con, libtcod.red)
 
     libtcod.console_print_ex(con, x, y + 2, background, alignment,
-                             'HP : ' + get_hp_bonus(slot))
+                             'HP : ' + str(get_hp_bonus(slot)))
 
     power_plus = get_power_bonus(slot)
     test = get_equipped(slot)
     if power_plus == 0 or get_equipped(slot) == 'empty':
         libtcod.console_set_default_foreground(con, libtcod.dark_grey)
-
-    elif power_plus == '0' and get_equipped(slot) != 'empty':
-        libtcod.console_set_default_foreground(con, libtcod.white)
     elif power_plus > 0:
         libtcod.console_set_default_foreground(con, libtcod.light_orange)
     else:
         libtcod.console_set_default_foreground(con, libtcod.red)
 
     libtcod.console_print_ex(con, x, y + 3, background, alignment,
-                             'POW: ' + get_power_bonus(slot))
+                             'POW: ' + str(get_power_bonus(slot)))
 
-    if get_defense_bonus(slot) == '0' or get_equipped(slot) == 'empty':
+    if get_defense_bonus(slot) == 0 or get_equipped(slot) == 'empty':
         libtcod.console_set_default_foreground(con, libtcod.dark_grey)
-    elif get_defense_bonus(slot) > 0 and get_equipped(slot) != 'empty':
+    elif get_defense_bonus(slot) > 0:
         libtcod.console_set_default_foreground(con, libtcod.light_azure)
     else:
         libtcod.console_set_default_foreground(con, libtcod.red)
 
     libtcod.console_print_ex(con, x, y + 4, background, alignment,
-                             'DEF: ' + get_defense_bonus(slot))
+                             'DEF: ' + str(get_defense_bonus(slot)))
 
 
 def save_game():
@@ -1614,7 +1609,7 @@ def main_menu():
             break
 
 
-libtcod.console_set_custom_font('cp437_10x10.png',
+libtcod.console_set_custom_font('cp437_8x8.png',
                                 libtcod.FONT_TYPE_GREYSCALE |
                                 libtcod.FONT_LAYOUT_ASCII_INROW)
 
