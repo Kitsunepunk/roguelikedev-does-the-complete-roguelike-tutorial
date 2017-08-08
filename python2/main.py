@@ -1,6 +1,5 @@
 import libtcodpy as libtcod
 import math
-import datetime
 import os
 import shelve
 import textwrap
@@ -9,14 +8,7 @@ import textwrap
 # game constants
 GAME_TITLE = 'Quest of the McGuffin'
 
-now = datetime.datetime.now()
-day = now.day
-month = now.month
-year = now.year
-hour = now.hour
-minute = now.min
-
-GAME_VER =  ' ' + str(year) + '.' + str(month) + '.' + str(day)
+GAME_VER =  ' 2017.08.08'
 
 # actual size of the window
 SCREEN_WIDTH = 80
@@ -716,14 +708,14 @@ def place_objects(room):
                 equipment_component = Equipment(slot=RIGHT_HAND,
                                                 power_bonus=3, defense_bonus=0,
                                                 max_hp_bonus=0)
-                item = Object(x, y, '/', 'sword', libtcod.sky, obj_back,
+                item = Object(x, y, '/', 'Sword', libtcod.sky, obj_back,
                               always_visible=True,
                               equipment=equipment_component)
 
             elif choice == 'shield':
                 equipment_component = Equipment(slot=LEFT_HAND,
                                                 defense_bonus=1)
-                item = Object(x, y, '[', 'shield', libtcod.darker_orange, obj_back,
+                item = Object(x, y, '[', 'Shield', libtcod.darker_orange, obj_back,
                               equipment=equipment_component)
 
             objects.append(item)
@@ -1094,15 +1086,15 @@ def handle_keys():
 
         elif key.vk == libtcod.KEY_RIGHT or key.vk == libtcod.KEY_KP6:
             player_move_or_attack(1, 0)
-        elif key.vk == libtcod.KEY_HOME or key.vk == libtcod.KEY_KP7:
+        elif key.vk == libtcod.KEY_KP7:
             player_move_or_attack(-1, -1)
 
-        elif key.vk == libtcod.KEY_PAGEUP or key.vk == libtcod.KEY_KP9:
+        elif key.vk == libtcod.KEY_KP9:
             player_move_or_attack(1, -1)
 
-        elif key.vk == libtcod.KEY_END or key.vk == libtcod.KEY_KP1:
+        elif key.vk == libtcod.KEY_KP1:
             player_move_or_attack(-1, 1)
-        elif key.vk == libtcod.KEY_PAGEDOWN or key.vk == libtcod.KEY_KP3:
+        elif key.vk == libtcod.KEY_KP3:
             player_move_or_attack(1, 1)
         elif key.vk == libtcod.KEY_KP5:
             pass
@@ -1157,7 +1149,7 @@ def next_level():
     initialize_fov()
     save_game()
 
-shot = 0
+shot = 1
 
 
 def take_screenshot():
@@ -1167,15 +1159,17 @@ def take_screenshot():
     if not os.path.exists('screenshots/'):
         os.makedirs('screenshots/')
 
-    if os.path.exists('screenshots/ss.png'):
+    if os.path.exists('screenshots/ss_0.png'):
         libtcod.image_save(test, 'screenshots/new.png')
         os.rename('screenshots/new.png', 'screenshots/ss_%s.png' % shot)
         shot += 1
     else:
-        libtcod.image_save(test, 'screenshots/ss.png')
+        libtcod.image_save(test, 'screenshots/ss_0.png')
 
     if os.path.exists('screenshots/new.png'):
         os.remove('screenshots/new.png')
+
+    message('Screenshot saved', libtcod.light_han)
 
 
 
@@ -1434,7 +1428,7 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
 
     hp_plus = get_hp_bonus(slot)
     test = get_all_equipped(slot)
-    if hp_plus == 0 or get_equipped(slot) == 'empty':
+    if hp_plus == '0' or get_equipped(slot) == 'empty':
         libtcod.console_set_default_foreground(con, libtcod.dark_grey)
     elif hp_plus == 0 and get_equipped(slot) != 'empty':
         libtcod.console_set_default_foreground(con, libtcod.white)
@@ -1451,7 +1445,7 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
     if power_plus == 0 or get_equipped(slot) == 'empty':
         libtcod.console_set_default_foreground(con, libtcod.dark_grey)
 
-    elif power_plus == 0 and get_equipped(slot) != 'empty':
+    elif power_plus == '0' and get_equipped(slot) != 'empty':
         libtcod.console_set_default_foreground(con, libtcod.white)
     elif power_plus > 0:
         libtcod.console_set_default_foreground(con, libtcod.light_orange)
@@ -1461,7 +1455,7 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
     libtcod.console_print_ex(con, x, y + 3, background, alignment,
                              'POW: ' + get_power_bonus(slot))
 
-    if get_defense_bonus(slot) == 0 or get_equipped(slot) == 'empty':
+    if get_defense_bonus(slot) == '0' or get_equipped(slot) == 'empty':
         libtcod.console_set_default_foreground(con, libtcod.dark_grey)
     elif get_defense_bonus(slot) > 0 and get_equipped(slot) != 'empty':
         libtcod.console_set_default_foreground(con, libtcod.light_azure)
@@ -1483,6 +1477,8 @@ def save_game():
     file['game_state'] = game_state
     file['dungeon_level'] = dungeon_level
     file.close()
+
+    # message('Game saved', libtcod.light_han)
 
 
 def load_game():
