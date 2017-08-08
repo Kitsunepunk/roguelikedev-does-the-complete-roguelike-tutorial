@@ -4,3 +4,5 @@
 *.bat
 screenshots
 python2/sg
+python2/savegame
+*.swp
