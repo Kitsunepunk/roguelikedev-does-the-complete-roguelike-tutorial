@@ -1,27 +1,43 @@
 import libtcodpy as libtcod
 
 
-def render_all(con0, con1, con2, con3, entities, game_map, sw, sh, iw, ih, lw,
-               lh, mpw, mph, msw, msh, ix, iy, lx, ly, msx, msy, sprites,
-               colors):
+def render_all(con0, con1, con2, con3, entities, game_map, fov_map, fov_recompute,
+               sw, sh, iw, ih, lw, lh, mpw, mph, msw, msh, ix, iy, lx, ly, msx,
+               msy, sprites, colors):
 
-    # Draw all the tiles in the game map
-    for y in range(game_map.height):
-        for x in range(game_map.width):
-            wall = game_map.tiles[x][y].block_sight
+    if fov_recompute:
+        # Draw all the tiles in the game map
+        for y in range(game_map.height):
+            for x in range(game_map.width):
+                visible = libtcod.map_is_in_fov(fov_map, x, y)
+                wall = game_map.tiles[x][y].block_sight
 
-            if wall:
-                libtcod.console_put_char_ex(con0, x, y, sprites.get('wall'),
-                                            colors.get('dark_wall'),
-                                            colors.get('tile_back'))
-            else:
-                libtcod.console_put_char_ex(con0, x, y, sprites.get('floor'),
-                                            colors.get('dark_ground'),
-                                            colors.get('tile_back'))
+                if visible:
+                    if wall:
+                        libtcod.console_put_char_ex(con0, x, y,
+                                                    sprites.get('wall'),
+                                                    colors.get('light_wall'),
+                                                    colors.get('tile_back'))
+                    else:
+                        libtcod.console_put_char_ex(con0, x, y,
+                                                    sprites.get('floor'),
+                                                    colors.get('light_ground'),
+                                                    colors.get('tile_back'))
+                    game_map.tiles[x][y].explored = True
+                elif game_map.tiles[x][y].explored:
+                    if wall:
+                        libtcod.console_put_char_ex(con0, x, y, sprites.get('wall'),
+                                                    colors.get('dark_wall'),
+                                                    colors.get('ofov_tile_back'))
+                    else:
+                        libtcod.console_put_char_ex(con0, x, y,
+                                                    sprites.get('floor'),
+                                                    colors.get('dark_ground'),
+                                                    colors.get('ofov_tile_back'))
 
     # Draw all entities in the list
     for entity in entities:
-        draw_entity(con0, entity)
+        draw_entity(con0, entity, fov_map)
 
     blit_cons(con0, con1, con2, con3, mpw, mph, iw, ih, ix, iy, lw, lh, lx, ly,
               msw, msh, msx, msy)
@@ -34,9 +50,10 @@ def clear_all(con0, entities):
         clear_entity(con0, entity)
 
 
-def draw_entity(con0, entity):
-    libtcod.console_put_char_ex(con0, entity.x, entity.y, entity.char,
-                                entity.fore_color, entity.back_color)
+def draw_entity(con0, entity, fov_map):
+    if libtcod.map_is_in_fov(fov_map, entity.x, entity.y):
+        libtcod.console_put_char_ex(con0, entity.x, entity.y, entity.char,
+                                    entity.fore_color, entity.back_color)
 
 
 def clear_entity(con0, entity):

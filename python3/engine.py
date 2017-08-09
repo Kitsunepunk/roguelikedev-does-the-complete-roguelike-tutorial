@@ -1,6 +1,7 @@
 import libtcodpy as libtcod
 
 from entity import Entity
+from fov_functions import initialize_fov, recompute_fov
 from input_handlers import handle_keys
 from map_objects.game_map import GameMap
 from render_functions import clear_all, render_all
@@ -20,6 +21,10 @@ def main():
     room_max_size = 10
     room_min_size = 6
     max_rooms = 30
+
+    fov_algo = libtcod.FOV_SHADOW
+    fov_lw = True
+    fov_r = 10
 
     # Look
     look_width = 58
@@ -57,6 +62,7 @@ def main():
         'wall_nws': 185,
         'wall_wse': 203,
         'wall_wne': 202,
+        'ne_tile': 178,
         'floor': '.'
     }
 
@@ -64,10 +70,13 @@ def main():
         'player_fore': libtcod.black,
         'player_back': libtcod.green,
         'dark_wall': libtcod.darker_grey,
+        'light_wall': libtcod.light_sepia,
         'dark_ground': libtcod.dark_grey,
+        'light_ground': libtcod.lighter_sepia,
         'tile_back': libtcod.black,
         'ofov_tile_back': libtcod.darkest_grey,
-        'obj_back': libtcod.black
+        'obj_back': libtcod.black,
+        'ofov_obj_back': libtcod.darkest_grey
     }
 
     player = Entity(int(map_width / 2), int(map_height / 2),
@@ -91,6 +100,10 @@ def main():
     game_map.make_map(max_rooms, room_min_size, room_max_size, map_width,
                       map_height, player)
 
+    fov_recompute = True
+
+    fov_map = initialize_fov(game_map)
+
     key = libtcod.Key()
     mouse = libtcod.Mouse()
 
@@ -98,12 +111,16 @@ def main():
 
         libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS, key, mouse)
 
-        render_all(mapcon, infocon, lookcon, msgcon, entities, game_map,
-                   screen_width, screen_height, info_width, info_height,
-                   look_width, look_height, map_width, map_height, msg_width,
-                   msg_height, info_x, info_y, look_x, look_y, msg_x, msg_y,
-                   sprites, colors)
+        if fov_recompute:
+            recompute_fov(fov_map, player.x, player.y, fov_r, fov_lw, fov_algo)
 
+        render_all(mapcon, infocon, lookcon, msgcon, entities, game_map,
+                   fov_map, fov_r, screen_width, screen_height, info_width,
+                   info_height, look_width, look_height, map_width, map_height,
+                   msg_width, msg_height, info_x, info_y, look_x, look_y,
+                   msg_x, msg_y, sprites, colors)
+
+        fov_recompute = False
         # fill_rects()
 
         libtcod.console_flush()
@@ -120,6 +137,8 @@ def main():
             dx, dy = move
             if not game_map.is_blocked(player.x + dx, player.y + dy):
                 player.move(dx, dy)
+
+                fov_recompute = True
 
         if end:
             return True
