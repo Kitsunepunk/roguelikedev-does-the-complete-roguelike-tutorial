@@ -2,7 +2,7 @@ import libtcodpy as libtcod
 
 
 def render_all(con0, con1, con2, con3, entities, game_map, sw, sh, iw, ih, lw,
-               lh, mpw, mph, msw, msh, ix, iy, lx, ly, msx, msy, sprtites,
+               lh, mpw, mph, msw, msh, ix, iy, lx, ly, msx, msy, sprites,
                colors):
 
     # Draw all the tiles in the game map
@@ -11,13 +11,13 @@ def render_all(con0, con1, con2, con3, entities, game_map, sw, sh, iw, ih, lw,
             wall = game_map.tiles[x][y].block_sight
 
             if wall:
-                libtcod.console_set_char_background(con0, x, y,
-                                                    colors.get('dark_wall'),
-                                                    libtcod.BKGND_SET)
+                libtcod.console_put_char_ex(con0, x, y, sprites.get('wall'),
+                                            colors.get('dark_wall'),
+                                            colors.get('tile_back'))
             else:
-                libtcod.console_put_char_ex(con0, x, y, sprtites.get('floor'),
-                                                    colors.get('dark_ground'),
-                                                    colors.get('tile_back'))
+                libtcod.console_put_char_ex(con0, x, y, sprites.get('floor'),
+                                            colors.get('dark_ground'),
+                                            colors.get('tile_back'))
 
     # Draw all entities in the list
     for entity in entities:
@@ -69,18 +69,3 @@ def fill_rects(con1, con2, con3, lw, lh, iw, ih, msw, msh):
     libtcod.console_rect(con2, 0, 0, lw, lh, True, libtcod.BKGND_SET)
     libtcod.console_rect(con1, 0, 0, iw, ih, True, libtcod.BKGND_SET)
     libtcod.console_rect(con3, 0, 0, msw, msh, True, libtcod.BKGND_SET)
-
-
-def fix_wall_tiles(self, sprites):
-
-    for i in range(1, game_map.width - 1):
-        for j in range(1, game_map.height - 1):
-            wall = game_map.tiles[i][j].block_sight
-
-            if game_map.tiles[i][j] == wall:
-                north = game_map.tiles[i][j - 1] == wall
-                south = game_map.tiles[i][j + 1] == wall
-                east = game_map.tiles[i + 1][j] == wall
-                west = game_map.tiles[i - 1][j] == wall
-
-                if north and east and south:

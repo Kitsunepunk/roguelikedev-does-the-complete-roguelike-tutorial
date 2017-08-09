@@ -17,6 +17,10 @@ def main():
     map_width = 60
     map_height = 40
 
+    room_max_size = 10
+    room_min_size = 6
+    max_rooms = 30
+
     # Look
     look_width = 58
     look_height = 1
@@ -35,9 +39,10 @@ def main():
     info_x = 61
     info_y = 1
 
+    # future wall '206'
     sprites = {
         'player': '@',
-        'wall': 206,
+        'wall': '#',
         'wall_w': 181,
         'wall_e': 198,
         'wall_n': 208,
@@ -58,14 +63,16 @@ def main():
     colors = {
         'player_fore': libtcod.black,
         'player_back': libtcod.green,
-        'dark_wall': libtcod.Color(190, 170, 140),
-        'dark_ground': libtcod.Color(50, 50, 150),
+        'dark_wall': libtcod.darker_grey,
+        'dark_ground': libtcod.dark_grey,
         'tile_back': libtcod.black,
+        'ofov_tile_back': libtcod.darkest_grey,
         'obj_back': libtcod.black
     }
 
-    player = Entity(int(map_width / 2), int(map_width / 2), 210,
-                    colors.get('player_fore'), colors.get('player_back'))
+    player = Entity(int(map_width / 2), int(map_height / 2),
+                    sprites.get('player'), colors.get('player_fore'),
+                    colors.get('player_back'))
     entities = [player]
 
     libtcod.console_set_custom_font('cp437_8x8.png',
@@ -81,6 +88,8 @@ def main():
     lookcon = libtcod.console_new(look_width, look_height)
 
     game_map = GameMap(map_width, map_height)
+    game_map.make_map(max_rooms, room_min_size, room_max_size, map_width,
+                      map_height, player)
 
     key = libtcod.Key()
     mouse = libtcod.Mouse()

@@ -1418,9 +1418,10 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
                  alignment=libtcod.LEFT):
     libtcod.console_set_default_foreground(infocon, libtcod.white)
 
-    libtcod.console_print_ex(con, x, y, background, alignment, slot.capitalize() + ':')
+    libtcod.console_print_ex(con, x, y, background, alignment,
+                             slot.capitalize() + ':')
     if get_equipped(slot) == 'empty':
-        libtcod.console_set_default_foreground(con, libtcod.dark_grey)
+        libtcod.console_set_default_foreground(con, libtcod.darkest_grey)
     else:
         libtcod.console_set_default_foreground(con, libtcod.light_han)
     libtcod.console_print_ex(con, x, y + 1, background, alignment,
@@ -1429,7 +1430,7 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
     hp_plus = get_hp_bonus(slot)
 
     if hp_plus == 0 or get_equipped(slot) == 'empty':
-        libtcod.console_set_default_foreground(con, libtcod.dark_grey)
+        libtcod.console_set_default_foreground(con, libtcod.darkest_grey)
     elif hp_plus > 0:
         libtcod.console_set_default_foreground(con, libtcod.light_red)
     else:
@@ -1441,7 +1442,7 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
     power_plus = get_power_bonus(slot)
     test = get_equipped(slot)
     if power_plus == 0 or get_equipped(slot) == 'empty':
-        libtcod.console_set_default_foreground(con, libtcod.dark_grey)
+        libtcod.console_set_default_foreground(con, libtcod.darkest_grey)
     elif power_plus > 0:
         libtcod.console_set_default_foreground(con, libtcod.light_orange)
     else:
@@ -1451,7 +1452,7 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
                              'POW: ' + str(get_power_bonus(slot)))
 
     if get_defense_bonus(slot) == 0 or get_equipped(slot) == 'empty':
-        libtcod.console_set_default_foreground(con, libtcod.dark_grey)
+        libtcod.console_set_default_foreground(con, libtcod.darkest_grey)
     elif get_defense_bonus(slot) > 0:
         libtcod.console_set_default_foreground(con, libtcod.light_azure)
     else:
