@@ -44,7 +44,7 @@ MSG_HEIGHT = 5
 INFO_WIDTH = 18
 INFO_HEIGHT = 48
 
-FOV_ALGO = libtcod.FOV_SHADOW  # libtcod.FOV_PERMISSIVE_1default FOV algorithm
+FOV_ALGO = libtcod.FOV_PERMISSIVE_0  # libtcod.FOV_PERMISSIVE_1default FOV algorithm
 FOV_LIGHT_WALLS = True  # light walls or not
 TORCH_RADIUS = 10
 
@@ -1149,20 +1149,31 @@ def next_level():
     initialize_fov()
     save_game()
 
-shot = 1
+shot = 0
+ss_path = './screenshots'
 
+def fcount(path):
+    global shot
+    count = shot
+
+    for f in os.listdir(path):
+        if os.path.isfile(os.path.join(path, f)):
+            count += 1
+
+    return count
 
 def take_screenshot():
-    global shot
+    global shot, ss_path
     test = libtcod.image_from_console(0)
+
+    new_shot = fcount(ss_path)
 
     if not os.path.exists('screenshots/'):
         os.makedirs('screenshots/')
 
     if os.path.exists('screenshots/ss_0.png'):
         libtcod.image_save(test, 'screenshots/new.png')
-        os.rename('screenshots/new.png', 'screenshots/ss_%s.png' % shot)
-        shot += 1
+        os.rename('screenshots/new.png', 'screenshots/ss_%s.png' % new_shot)
     else:
         libtcod.image_save(test, 'screenshots/ss_0.png')
 
