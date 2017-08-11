@@ -1,9 +1,9 @@
 import libtcodpy as libtcod
 
 
-def render_all(con0, con1, con2, con3, entities, game_map, fov_map, fov_recompute,
-               sw, sh, iw, ih, lw, lh, mpw, mph, msw, msh, ix, iy, lx, ly, msx,
-               msy, sprites, colors):
+def render_all(con0, con1, con2, con3, entities, game_map, fov_map,
+               fov_recompute, sw, sh, iw, ih, lw, lh, mpw, mph, msw, msh, ix,
+               iy, lx, ly, msx, msy, sprites, colors):
 
     if fov_recompute:
         # Draw all the tiles in the game map
@@ -26,14 +26,22 @@ def render_all(con0, con1, con2, con3, entities, game_map, fov_map, fov_recomput
                     game_map.tiles[x][y].explored = True
                 elif game_map.tiles[x][y].explored:
                     if wall:
-                        libtcod.console_put_char_ex(con0, x, y, sprites.get('wall'),
+                        libtcod.console_put_char_ex(con0, x, y,
+                                                    sprites.get('wall'),
                                                     colors.get('dark_wall'),
-                                                    colors.get('ofov_tile_back'))
+                                                    colors.get('ofov_tile_back'
+                                                               ))
                     else:
                         libtcod.console_put_char_ex(con0, x, y,
                                                     sprites.get('floor'),
                                                     colors.get('dark_ground'),
-                                                    colors.get('ofov_tile_back'))
+                                                    colors.get('ofov_tile_back'
+                                                               ))
+                elif not visible:
+                    libtcod.console_put_char_ex(con0, x, y,
+                                                sprites.get('unEx'),
+                                                colors.get('tile_back'),
+                                                colors.get('ofov_tile_back'))
 
     # Draw all entities in the list
     for entity in entities:

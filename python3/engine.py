@@ -1,14 +1,17 @@
 import libtcodpy as libtcod
 
-from entity import Entity
+from entity import Entity, get_blocking_entities_at_location
 from fov_functions import initialize_fov, recompute_fov
+from game_states import GameStates
+from image import take_screenshot
 from input_handlers import handle_keys
 from map_objects.game_map import GameMap
 from render_functions import clear_all, render_all
 
+
 def main():
     game_title = 'Quest for the McGuffin'
-    game_ver = ' py3_2017.08.08'
+    game_ver = ' py3_2017.08.11'
 
     # Window
     screen_width = 80
@@ -22,9 +25,11 @@ def main():
     room_min_size = 6
     max_rooms = 30
 
-    fov_algo = libtcod.FOV_SHADOW
+    fov_algo = libtcod.FOV_RESTRICTIVE
     fov_lw = True
     fov_r = 10
+
+    max_monsters_per_room = 3
 
     # Look
     look_width = 58
@@ -44,9 +49,18 @@ def main():
     info_x = 61
     info_y = 1
 
+    # Screenshot functions
+    f_path = './screenshots'
+    img_path = './screenshots/ss_0.png'
+    rn_path = './screenshots/ss_%s.png'
+    tmp_path = './screenshots/tmp.png'
+
     # future wall '206'
     sprites = {
+        'orc': 'o',
         'player': '@',
+        'troll': 'T',
+        'unEx': 178,
         'wall': '#',
         'wall_w': 181,
         'wall_e': 198,
@@ -67,8 +81,10 @@ def main():
     }
 
     colors = {
+        'orc': libtcod.desaturated_green,
         'player_fore': libtcod.black,
         'player_back': libtcod.green,
+        'troll': libtcod.darker_green,
         'dark_wall': libtcod.darker_grey,
         'light_wall': libtcod.light_sepia,
         'dark_ground': libtcod.dark_grey,
@@ -79,9 +95,8 @@ def main():
         'ofov_obj_back': libtcod.darkest_grey
     }
 
-    player = Entity(int(map_width / 2), int(map_height / 2),
-                    sprites.get('player'), colors.get('player_fore'),
-                    colors.get('player_back'))
+    player = Entity(0, 0, sprites.get('player'), colors.get('player_fore'),
+                    colors.get('player_back'), 'Player', blocks=True)
     entities = [player]
 
     libtcod.console_set_custom_font('cp437_8x8.png',
@@ -98,7 +113,8 @@ def main():
 
     game_map = GameMap(map_width, map_height)
     game_map.make_map(max_rooms, room_min_size, room_max_size, map_width,
-                      map_height, player)
+                      map_height, player, entities, sprites, colors,
+                      max_monsters_per_room)
 
     fov_recompute = True
 
@@ -106,6 +122,8 @@ def main():
 
     key = libtcod.Key()
     mouse = libtcod.Mouse()
+
+    game_state = GameStates.PLAYERS_TURN
 
     while not libtcod.console_is_window_closed():
 
@@ -132,19 +150,41 @@ def main():
         move = action.get('move')
         end = action.get('exit')
         fullscreen = action.get('fullscreen')
+        screenshot = action.get('screenshot')
 
-        if move:
+        if move and game_state == GameStates.PLAYERS_TURN:
             dx, dy = move
-            if not game_map.is_blocked(player.x + dx, player.y + dy):
-                player.move(dx, dy)
+            destination_x = player.x + dx
+            destination_y = player.y + dy
+            if not game_map.is_blocked(destination_x, destination_y):
+                target = get_blocking_entities_at_location(entities,
+                                                           destination_x,
+                                                           destination_y)
+                if target:
+                    print('You kick the ' + target.name + ' in the shins,' +
+                          ' much to its annoyance')
+                else:
+                    player.move(dx, dy)
 
-                fov_recompute = True
+                    fov_recompute = True
+                
+                game_state = GameStates.ENEMY_TURN
 
         if end:
             return True
 
         if fullscreen:
             libtcod.console_set_fullscreen(not libtcod.console_is_fullscreen())
+
+        if screenshot:
+            take_screenshot(f_path, img_path, rn_path, tmp_path)
+
+        if game_state == GameStates.ENEMY_TURN:
+            for entity in entities:
+                if entity != player:
+                    print('The ' + entity.name + ' ponders the meaning of' +
+                          ' its existance')
+            game_state = GameStates.PLAYERS_TURN
 
 
 if __name__ == '__main__':
