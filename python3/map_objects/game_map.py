@@ -1,5 +1,7 @@
 from random import randint
 
+from components.ai import BasicMonster
+from components.fighter import Fighter
 from entity import Entity
 from map_objects.rectangle import Rect
 from map_objects.tile import Tile
@@ -42,7 +44,7 @@ class GameMap:
             for other_room in rooms:
                 if new_room.intersect(other_room):
                     break
-            
+
             else:
                 # this means there are no intersections, so this room
                 # is valid
@@ -111,14 +113,19 @@ class GameMap:
             if not any([entity for entity in entities if entity.x == x and
                         entity.y == y]):
                 if randint(0, 100) < 80:
+                    fighter_c = Fighter(hp=10, defense=0, power=3)
+                    ai_c = BasicMonster()
                     monster = Entity(x, y, sprites.get('orc'),
                                      colors.get('orc'), colors.get('obj_back'),
-                                     'Orc', blocks=True)
+                                     'Orc', blocks=True, fighter=fighter_c,
+                                     ai=ai_c)
                 else:
-                    monster = Entity(x, y, sprites.get('orc'),
+                    fighter_c = Fighter(hp=16, defense=1, power=4)
+                    ai_c = BasicMonster()
+                    monster = Entity(x, y, sprites.get('troll'),
                                      colors.get('troll'),
                                      colors.get('obj_back'), 'Troll',
-                                     blocks=True)
+                                     blocks=True, fighter=fighter_c, ai=ai_c)
 
                 entities.append(monster)
 

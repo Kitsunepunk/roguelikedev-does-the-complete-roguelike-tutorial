@@ -39,7 +39,7 @@ def render_all(con0, con1, con2, con3, entities, game_map, fov_map,
                                                                ))
                 elif not visible:
                     libtcod.console_put_char_ex(con0, x, y,
-                                                sprites.get('unEx'),
+                                                sprites.get('ne_tile'),
                                                 colors.get('tile_back'),
                                                 colors.get('ofov_tile_back'))
 

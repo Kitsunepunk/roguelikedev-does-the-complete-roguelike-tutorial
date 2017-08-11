@@ -1,5 +1,6 @@
 import libtcodpy as libtcod
 
+from components.fighter import Fighter
 from entity import Entity, get_blocking_entities_at_location
 from fov_functions import initialize_fov, recompute_fov
 from game_states import GameStates
@@ -57,10 +58,11 @@ def main():
 
     # future wall '206'
     sprites = {
+        'floor': '.',
+        'ne_tile': 178,
         'orc': 'o',
         'player': '@',
         'troll': 'T',
-        'unEx': 178,
         'wall': '#',
         'wall_w': 181,
         'wall_e': 198,
@@ -75,9 +77,7 @@ def main():
         'wall_nes': 204,
         'wall_nws': 185,
         'wall_wse': 203,
-        'wall_wne': 202,
-        'ne_tile': 178,
-        'floor': '.'
+        'wall_wne': 202
     }
 
     colors = {
@@ -95,8 +95,10 @@ def main():
         'ofov_obj_back': libtcod.darkest_grey
     }
 
+    fighter_c = Fighter(hp=30, defense=2, power=5)
     player = Entity(0, 0, sprites.get('player'), colors.get('player_fore'),
-                    colors.get('player_back'), 'Player', blocks=True)
+                    colors.get('player_back'), 'Player', blocks=True,
+                    fighter=fighter_c)
     entities = [player]
 
     libtcod.console_set_custom_font('cp437_8x8.png',
@@ -152,6 +154,8 @@ def main():
         fullscreen = action.get('fullscreen')
         screenshot = action.get('screenshot')
 
+        player_turn_results = []
+
         if move and game_state == GameStates.PLAYERS_TURN:
             dx, dy = move
             destination_x = player.x + dx
@@ -161,13 +165,13 @@ def main():
                                                            destination_x,
                                                            destination_y)
                 if target:
-                    print('You kick the ' + target.name + ' in the shins,' +
-                          ' much to its annoyance')
+                    attack_results = player.fighter.attack(target)
+                    player_turn_results.extend(attack_results)
                 else:
                     player.move(dx, dy)
 
                     fov_recompute = True
-                
+
                 game_state = GameStates.ENEMY_TURN
 
         if end:
@@ -179,12 +183,35 @@ def main():
         if screenshot:
             take_screenshot(f_path, img_path, rn_path, tmp_path)
 
+        for player_turn_result in player_turn_results:
+            message = player_turn_result.get('message')
+            dead_entity = player_turn_result.get('dead')
+
+            if message:
+                print(message)
+
+            if dead_entity:
+                pass  # Implement Death
+
         if game_state == GameStates.ENEMY_TURN:
             for entity in entities:
-                if entity != player:
-                    print('The ' + entity.name + ' ponders the meaning of' +
-                          ' its existance')
-            game_state = GameStates.PLAYERS_TURN
+                if entity.ai:
+                    enemy_turn_results = entity.ai.take_turn(player, fov_map,
+                                                             game_map, entities
+                                                             )
+
+                    for enemy_turn_result in enemy_turn_results:
+                        message = enemy_turn_result.get('message')
+                        dead_entity = enemy_turn_result.get('dead')
+
+                        if message:
+                            print(message)
+
+                        if dead_entity:
+                            pass
+
+            else:
+                game_state = GameStates.PLAYERS_TURN
 
 
 if __name__ == '__main__':
