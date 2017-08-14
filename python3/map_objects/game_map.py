@@ -5,6 +5,7 @@ from components.fighter import Fighter
 from entity import Entity
 from map_objects.rectangle import Rect
 from map_objects.tile import Tile
+from render_functions import RenderOrder
 
 
 class GameMap:
@@ -117,7 +118,9 @@ class GameMap:
                     ai_c = BasicMonster()
                     monster = Entity(x, y, sprites.get('orc'),
                                      colors.get('orc'), colors.get('obj_back'),
-                                     'Orc', blocks=True, fighter=fighter_c,
+                                     'Orc', blocks=True,
+                                     render_ord=RenderOrder.ACTOR,
+                                     fighter=fighter_c,
                                      ai=ai_c)
                 else:
                     fighter_c = Fighter(hp=16, defense=1, power=4)
@@ -125,7 +128,9 @@ class GameMap:
                     monster = Entity(x, y, sprites.get('troll'),
                                      colors.get('troll'),
                                      colors.get('obj_back'), 'Troll',
-                                     blocks=True, fighter=fighter_c, ai=ai_c)
+                                     blocks=True,
+                                     render_ord=RenderOrder.ACTOR,
+                                     fighter=fighter_c, ai=ai_c)
 
                 entities.append(monster)
 

@@ -44,7 +44,7 @@ MSG_HEIGHT = 5
 INFO_WIDTH = 18
 INFO_HEIGHT = 48
 
-FOV_ALGO = libtcod.FOV_PERMISSIVE_0  # libtcod.FOV_PERMISSIVE_1default FOV algorithm
+FOV_ALGO = libtcod.FOV_RESTRICTIVE  # libtcod.FOV_PERMISSIVE_1default FOV algorithm
 FOV_LIGHT_WALLS = True  # light walls or not
 TORCH_RADIUS = 10
 
@@ -624,18 +624,20 @@ def place_objects(room):
     max_monsters = from_dungeon_level([[2, 1], [3, 4], [5, 6]])
 
     monster_chances = {}
-    monster_chances['orc']  = 80
+    monster_chances['orc'] = 80
     monster_chances['troll'] = from_dungeon_level([[15, 3], [30, 5], [60, 7]])
 
-    max_items = from_dungeon_level([[1, 1],[2, 4]])
+    max_items = from_dungeon_level([[1, 1], [2, 4]])
 
     item_chances = {}
     item_chances['heal'] = 35
     item_chances['lightning'] = from_dungeon_level([[25, 4]])
-    item_chances['fireball'] =  from_dungeon_level([[25, 6]])
-    item_chances['confuse'] =   from_dungeon_level([[10, 2]])
-    item_chances['sword'] =     from_dungeon_level([[5, 4]])
-    item_chances['shield'] =    from_dungeon_level([[15, 8]])
+    item_chances['fireball'] = from_dungeon_level([[25, 6]])
+    item_chances['confuse'] = from_dungeon_level([[10, 2]])
+    item_chances['wsword'] = from_dungeon_level([[25, 1],[12, 4],[6, 8]])
+    item_chances['sword'] = from_dungeon_level([[5, 4]])
+    item_chances['wshield'] =from_dungeon_level([[25, 1],[12, 4],[6, 8]])
+    item_chances['shield'] = from_dungeon_level([[15, 8]])
 
     num_monsters = libtcod.random_get_int(0, 0, max_monsters)
 
@@ -714,9 +716,23 @@ def place_objects(room):
 
             elif choice == 'Shield':
                 equipment_component = Equipment(slot=LEFT_HAND,
-                                                defense_bonus=1)
-                item = Object(x, y, '[', 'Shield', libtcod.darker_orange, obj_back,
+                                                defense_bonus=3)
+                item = Object(x, y, '[', 'Shield', libtcod.darker_orange,
+                              obj_back, equipment=equipment_component)
+
+            elif choice == 'wsword':
+                equipment_component = Equipment(slot=RIGHT_HAND,
+                                                power_bonus=2, defense_bonus=0,
+                                                max_hp_bonus=0)
+                item = Object(x, y, '/', 'Wood Sword', libtcod.sky, obj_back,
+                              always_visible=True,
                               equipment=equipment_component)
+
+            elif choice == 'wshield':
+                equipment_component = Equipment(slot=LEFT_HAND,
+                                                defense_bonus=1)
+                item = Object(x, y, '[', 'Wood Shield', libtcod.darker_orange,
+                              obj_back, equipment=equipment_component)
 
             objects.append(item)
             item.send_to_back()  # items appear below other objects
@@ -1228,7 +1244,7 @@ def target_tile(max_range=None):
             return (None, None)
 
         if (mouse.lbutton_pressed and libtcod.map_is_in_fov(fov_map, x, y) and
-            (max_range is None or player.distance(x, y) <= max_range)):
+                    (max_range is None or player.distance(x, y) <= max_range)):
             return (x, y)
 
 
@@ -1417,12 +1433,12 @@ def info_screen():
                              'Equipment:')
     display_slot(infocon, 1, 12, HEAD_SLOT)
     display_slot(infocon, 10, 12, CHEST_SLOT)
-    display_slot(infocon, 1, 18, RIGHT_ARM)
-    display_slot(infocon, 10, 18, RIGHT_HAND)
-    display_slot(infocon, 1, 24, LEFT_ARM)
-    display_slot(infocon, 10, 24, LEFT_HAND)
-    display_slot(infocon, 1, 30, LEG_SLOT)
-    display_slot(infocon, 10, 30, BOOT_SLOT)
+    display_slot(infocon, 1, 19, RIGHT_ARM)
+    display_slot(infocon, 10, 19, RIGHT_HAND)
+    display_slot(infocon, 1, 26, LEFT_ARM)
+    display_slot(infocon, 10, 26, LEFT_HAND)
+    display_slot(infocon, 1, 33, LEG_SLOT)
+    display_slot(infocon, 10, 33, BOOT_SLOT)
 
 
 def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
@@ -1447,7 +1463,7 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
     else:
         libtcod.console_set_default_foreground(con, libtcod.red)
 
-    libtcod.console_print_ex(con, x, y + 2, background, alignment,
+    libtcod.console_print_ex(con, x, y + 3, background, alignment,
                              'HP : ' + str(get_hp_bonus(slot)))
 
     power_plus = get_power_bonus(slot)
@@ -1459,7 +1475,7 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
     else:
         libtcod.console_set_default_foreground(con, libtcod.red)
 
-    libtcod.console_print_ex(con, x, y + 3, background, alignment,
+    libtcod.console_print_ex(con, x, y + 4, background, alignment,
                              'POW: ' + str(get_power_bonus(slot)))
 
     if get_defense_bonus(slot) == 0 or get_equipped(slot) == 'empty':
@@ -1469,7 +1485,7 @@ def display_slot(con, x, y, slot, background=libtcod.BKGND_NONE,
     else:
         libtcod.console_set_default_foreground(con, libtcod.red)
 
-    libtcod.console_print_ex(con, x, y + 4, background, alignment,
+    libtcod.console_print_ex(con, x, y + 5, background, alignment,
                              'DEF: ' + str(get_defense_bonus(slot)))
 
 
@@ -1530,7 +1546,7 @@ def new_game():
     message('Your village is in danger find the McGuffin to save it!' +
             ' If you can...')
 
-    equipment_component = Equipment(slot=RIGHT_HAND, power_bonus=2, defense_bonus=0, max_hp_bonus=0)
+    equipment_component = Equipment(slot=RIGHT_HAND, power_bonus=1, defense_bonus=0, max_hp_bonus=0)
     obj = Object(0, 0, '-', 'dagger', libtcod.sky, obj_back,
                  equipment=equipment_component)
     inventory.append(obj)

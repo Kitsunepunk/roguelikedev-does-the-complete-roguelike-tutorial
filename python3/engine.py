@@ -1,13 +1,14 @@
 import libtcodpy as libtcod
 
 from components.fighter import Fighter
+from death_functions import kill_monster, kill_player
 from entity import Entity, get_blocking_entities_at_location
 from fov_functions import initialize_fov, recompute_fov
 from game_states import GameStates
 from image import take_screenshot
 from input_handlers import handle_keys
 from map_objects.game_map import GameMap
-from render_functions import clear_all, render_all
+from render_functions import clear_all, render_all, RenderOrder
 
 
 def main():
@@ -50,6 +51,9 @@ def main():
     info_x = 61
     info_y = 1
 
+    # Interface
+    bar_width = 16
+
     # Screenshot functions
     f_path = './screenshots'
     img_path = './screenshots/ss_0.png'
@@ -58,6 +62,7 @@ def main():
 
     # future wall '206'
     sprites = {
+        'death': '%',
         'floor': '.',
         'ne_tile': 178,
         'orc': 'o',
@@ -81,6 +86,7 @@ def main():
     }
 
     colors = {
+        'death': libtcod.dark_red,
         'orc': libtcod.desaturated_green,
         'player_fore': libtcod.black,
         'player_back': libtcod.green,
@@ -98,7 +104,7 @@ def main():
     fighter_c = Fighter(hp=30, defense=2, power=5)
     player = Entity(0, 0, sprites.get('player'), colors.get('player_fore'),
                     colors.get('player_back'), 'Player', blocks=True,
-                    fighter=fighter_c)
+                    render_ord=RenderOrder.ACTOR, fighter=fighter_c)
     entities = [player]
 
     libtcod.console_set_custom_font('cp437_8x8.png',
@@ -134,11 +140,11 @@ def main():
         if fov_recompute:
             recompute_fov(fov_map, player.x, player.y, fov_r, fov_lw, fov_algo)
 
-        render_all(mapcon, infocon, lookcon, msgcon, entities, game_map,
-                   fov_map, fov_r, screen_width, screen_height, info_width,
-                   info_height, look_width, look_height, map_width, map_height,
-                   msg_width, msg_height, info_x, info_y, look_x, look_y,
-                   msg_x, msg_y, sprites, colors)
+        render_all(mapcon, infocon, lookcon, msgcon, entities, player,
+                   game_map, fov_map, fov_r, screen_width, screen_height,
+                   info_width, info_height, look_width, look_height, map_width,
+                   map_height, msg_width, msg_height, info_x, info_y, look_x,
+                   look_y, msg_x, msg_y, sprites, colors)
 
         fov_recompute = False
         # fill_rects()
@@ -191,7 +197,13 @@ def main():
                 print(message)
 
             if dead_entity:
-                pass  # Implement Death
+                if dead_entity == player:
+                    message, game_state = kill_player(dead_entity, sprites,
+                                                      colors)
+                else:
+                    message = kill_monster(dead_entity, sprites, colors)
+
+                print(message)
 
         if game_state == GameStates.ENEMY_TURN:
             for entity in entities:
@@ -208,7 +220,20 @@ def main():
                             print(message)
 
                         if dead_entity:
-                            pass
+                            if dead_entity == player:
+                                message, game_state = kill_player(
+                                    dead_entity, sprites, colors)
+                            else:
+                                message = kill_monster(dead_entity, sprites,
+                                                       colors)
+
+                            print(message)
+
+                            if game_state == GameStates.PLAYER_DEAD:
+                                break
+                    
+                    if game_state == GameStates.PLAYER_DEAD:
+                        break
 
             else:
                 game_state = GameStates.PLAYERS_TURN

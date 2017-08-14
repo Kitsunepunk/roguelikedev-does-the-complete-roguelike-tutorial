@@ -1,7 +1,33 @@
 import libtcodpy as libtcod
+from enum import Enum
 
 
-def render_all(con0, con1, con2, con3, entities, game_map, fov_map,
+class RenderOrder(Enum):
+    CORPSE = 1
+    ITEM = 2
+    ACTOR = 3
+
+
+def render_bar(con, x, y, total_width, name, value, maximum, txt_col, bf_col,
+               b_col):
+    bar_width = int(float(value) / maximum * total_width)
+
+    libtcod.console_set_default_background(con, b_col)
+    libtcod.console_rect(con, x, y + 1, total_width, 1, False,
+                         libtcod.BKGND_SCREEN)
+
+    libtcod.console_set_default_background(con, bf_col)
+    if bar_width > 0:
+        libtcod.console_rect(con, x, y + 1, bar_width, 1, False,
+                             libtcod.BKGND_SCREEN)
+
+    libtcod.console_set_default_foreground(con, txt_col)
+    libtcod.console_print_ex(con, int(x + total_width / 2), y,
+                             libtcod.BKGND_NONE, libtcod.LEFT,
+                             '{0}: {1}/{2}'.format(name, value, maximum))
+
+
+def render_all(con0, con1, con2, con3, entities, player, game_map, fov_map,
                fov_recompute, sw, sh, iw, ih, lw, lh, mpw, mph, msw, msh, ix,
                iy, lx, ly, msx, msy, sprites, colors):
 
@@ -44,11 +70,16 @@ def render_all(con0, con1, con2, con3, entities, game_map, fov_map,
                                                 colors.get('ofov_tile_back'))
 
     # Draw all entities in the list
-    for entity in entities:
+    entities_in_render_ord = sorted(entities, key=lambda x: x.render_ord.value)
+    for entity in entities_in_render_ord:
         draw_entity(con0, entity, fov_map)
 
     blit_cons(con0, con1, con2, con3, mpw, mph, iw, ih, ix, iy, lw, lh, lx, ly,
               msw, msh, msx, msy)
+    libtcod.console_set_default_foreground(con1, libtcod.white)
+    libtcod.console_print_ex(con1, 1, 1, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'HP: {0:02}/{1:02}'.format(player.fighter.hp,
+                                                        player.fighter.max_hp))
     draw_frames(lw, lh, msw, msh, iw, ih)
     fill_rects(con1, con2, con3, lw, lh, iw, ih, msw, msh)
 
@@ -92,5 +123,5 @@ def fill_rects(con1, con2, con3, lw, lh, iw, ih, msw, msh):
     libtcod.console_set_default_background(con3, libtcod.light_azure)
     libtcod.console_set_default_background(con1, libtcod.light_han)
     libtcod.console_rect(con2, 0, 0, lw, lh, True, libtcod.BKGND_SET)
-    libtcod.console_rect(con1, 0, 0, iw, ih, True, libtcod.BKGND_SET)
+    # libtcod.console_rect(con1, 0, 0, iw, ih, True, libtcod.BKGND_SET)
     libtcod.console_rect(con3, 0, 0, msw, msh, True, libtcod.BKGND_SET)
