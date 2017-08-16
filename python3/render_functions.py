@@ -8,7 +8,7 @@ class RenderOrder(Enum):
     ACTOR = 3
 
 
-def render_bar(con, x, y, total_width, name, value, maximum, txt_col, bf_col,
+def render_bar(con, x, y, total_width, name, value, maximum, bf_col,
                b_col):
     bar_width = int(float(value) / maximum * total_width)
 
@@ -21,15 +21,15 @@ def render_bar(con, x, y, total_width, name, value, maximum, txt_col, bf_col,
         libtcod.console_rect(con, x, y + 1, bar_width, 1, False,
                              libtcod.BKGND_SCREEN)
 
-    libtcod.console_set_default_foreground(con, txt_col)
-    libtcod.console_print_ex(con, int(x + total_width / 2), y,
+    libtcod.console_set_default_foreground(con, libtcod.white)
+    libtcod.console_print_ex(con, x, y,
                              libtcod.BKGND_NONE, libtcod.LEFT,
                              '{0}: {1}/{2}'.format(name, value, maximum))
 
 
 def render_all(con0, con1, con2, con3, entities, player, game_map, fov_map,
                fov_recompute, sw, sh, iw, ih, lw, lh, mpw, mph, msw, msh, ix,
-               iy, lx, ly, msx, msy, sprites, colors):
+               iy, lx, ly, msx, msy, msg_log, bar_width, sprites, colors):
 
     if fov_recompute:
         # Draw all the tiles in the game map
@@ -74,12 +74,13 @@ def render_all(con0, con1, con2, con3, entities, player, game_map, fov_map,
     for entity in entities_in_render_ord:
         draw_entity(con0, entity, fov_map)
 
+    player_info(con1, 1, 1, iw, player, bar_width)
+
+    # Print the game messages, one line at a time
+    display_msgs(con3, 0, msg_log)
     blit_cons(con0, con1, con2, con3, mpw, mph, iw, ih, ix, iy, lw, lh, lx, ly,
               msw, msh, msx, msy)
-    libtcod.console_set_default_foreground(con1, libtcod.white)
-    libtcod.console_print_ex(con1, 1, 1, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'HP: {0:02}/{1:02}'.format(player.fighter.hp,
-                                                        player.fighter.max_hp))
+
     draw_frames(lw, lh, msw, msh, iw, ih)
     fill_rects(con1, con2, con3, lw, lh, iw, ih, msw, msh)
 
@@ -120,8 +121,34 @@ def draw_frames(lw, lh, msw, msh, iw, ih):
 
 def fill_rects(con1, con2, con3, lw, lh, iw, ih, msw, msh):
     libtcod.console_set_default_background(con2, libtcod.light_gray)
-    libtcod.console_set_default_background(con3, libtcod.light_azure)
-    libtcod.console_set_default_background(con1, libtcod.light_han)
+    # libtcod.console_set_default_background(con3, libtcod.light_azure)
+    # libtcod.console_set_default_background(con1, libtcod.light_han)
     libtcod.console_rect(con2, 0, 0, lw, lh, True, libtcod.BKGND_SET)
     # libtcod.console_rect(con1, 0, 0, iw, ih, True, libtcod.BKGND_SET)
-    libtcod.console_rect(con3, 0, 0, msw, msh, True, libtcod.BKGND_SET)
+    # libtcod.console_rect(con3, 0, 0, msw, msh, True, libtcod.BKGND_SET)
+
+
+def player_info(con1, x, y, iw, player, bar_width):
+    libtcod.console_set_default_foreground(con1, libtcod.white)
+    libtcod.console_set_default_background(con1, libtcod.black)
+    libtcod.console_clear(con1)
+    libtcod.console_print_frame(con1, 0, 0, iw, 10, False, libtcod.BKGND_NONE,
+                                'Player')
+    libtcod.console_print_ex(con1, x, y, libtcod.BKGND_NONE, libtcod.LEFT,
+                             player.name)
+
+    render_bar(con1, x, y + 1, bar_width, 'HP', player.fighter.hp,
+               player.fighter.max_hp, libtcod.light_red,
+               libtcod.darker_red)
+
+
+def display_msgs(con3, y, msg_log):
+    libtcod.console_clear(con3)
+    colorCoef = 0.4
+    for message in msg_log.messages:
+        libtcod.console_set_default_foreground(con3, message.color * colorCoef)
+        libtcod.console_print_ex(con3, msg_log.x, y, libtcod.BKGND_NONE,
+                                 libtcod.LEFT, message.text)
+        y +=1
+        if colorCoef < 1.0:
+            colorCoef += 0.2

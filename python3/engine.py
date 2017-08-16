@@ -4,6 +4,7 @@ from components.fighter import Fighter
 from death_functions import kill_monster, kill_player
 from entity import Entity, get_blocking_entities_at_location
 from fov_functions import initialize_fov, recompute_fov
+from game_messages import MessageLog
 from game_states import GameStates
 from image import take_screenshot
 from input_handlers import handle_keys
@@ -52,7 +53,7 @@ def main():
     info_y = 1
 
     # Interface
-    bar_width = 16
+    bar_width = 15
 
     # Screenshot functions
     f_path = './screenshots'
@@ -98,7 +99,11 @@ def main():
         'tile_back': libtcod.black,
         'ofov_tile_back': libtcod.darkest_grey,
         'obj_back': libtcod.black,
-        'ofov_obj_back': libtcod.darkest_grey
+        'ofov_obj_back': libtcod.darkest_grey,
+        'msg_default': libtcod.white,
+        'msg_system': libtcod.light_han,
+        'msg_p_dead': libtcod.red,
+        'msg_m_dead': libtcod.orange
     }
 
     fighter_c = Fighter(hp=30, defense=2, power=5)
@@ -128,6 +133,8 @@ def main():
 
     fov_map = initialize_fov(game_map)
 
+    msg_log = MessageLog(1, msg_width, msg_height)
+
     key = libtcod.Key()
     mouse = libtcod.Mouse()
 
@@ -144,7 +151,7 @@ def main():
                    game_map, fov_map, fov_r, screen_width, screen_height,
                    info_width, info_height, look_width, look_height, map_width,
                    map_height, msg_width, msg_height, info_x, info_y, look_x,
-                   look_y, msg_x, msg_y, sprites, colors)
+                   look_y, msg_x, msg_y, msg_log, bar_width, sprites, colors)
 
         fov_recompute = False
         # fill_rects()
@@ -194,7 +201,7 @@ def main():
             dead_entity = player_turn_result.get('dead')
 
             if message:
-                print(message)
+                msg_log.add_message(message)
 
             if dead_entity:
                 if dead_entity == player:
@@ -203,7 +210,7 @@ def main():
                 else:
                     message = kill_monster(dead_entity, sprites, colors)
 
-                print(message)
+                msg_log.add_message(message)
 
         if game_state == GameStates.ENEMY_TURN:
             for entity in entities:
@@ -217,7 +224,7 @@ def main():
                         dead_entity = enemy_turn_result.get('dead')
 
                         if message:
-                            print(message)
+                            msg_log.add_message(message)
 
                         if dead_entity:
                             if dead_entity == player:
@@ -227,11 +234,11 @@ def main():
                                 message = kill_monster(dead_entity, sprites,
                                                        colors)
 
-                            print(message)
+                            msg_log.add_message(message)
 
                             if game_state == GameStates.PLAYER_DEAD:
                                 break
-                    
+
                     if game_state == GameStates.PLAYER_DEAD:
                         break
 
