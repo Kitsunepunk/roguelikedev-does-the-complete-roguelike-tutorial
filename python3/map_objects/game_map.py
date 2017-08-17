@@ -2,6 +2,7 @@ from random import randint
 
 from components.ai import BasicMonster
 from components.fighter import Fighter
+from components.item import Item
 from entity import Entity
 from map_objects.rectangle import Rect
 from map_objects.tile import Tile
@@ -22,7 +23,7 @@ class GameMap:
 
     def make_map(self, max_rooms, room_min_size, room_max_size, map_width,
                  map_height, player, entities, sprites, colors,
-                 max_monsters_per_room):
+                 max_monsters_per_room, max_items_per_room):
 
         rooms = []
         num_rooms = 0
@@ -78,7 +79,7 @@ class GameMap:
                         self.create_h_tunnel(prev_x, new_x, new_y)
 
                 self.place_entities(new_room, entities, max_monsters_per_room,
-                                    sprites, colors)
+                                    max_items_per_room, sprites, colors)
 
                 # finally, append the new room to the list
                 rooms.append(new_room)
@@ -101,10 +102,11 @@ class GameMap:
             self.tiles[x][y].blocked = False
             self.tiles[x][y].block_sight = False
 
-    def place_entities(self, room, entities, max_monsters_per_room, sprites,
-                       colors):
+    def place_entities(self, room, entities, max_monsters_per_room,
+                       max_items_per_room, sprites, colors):
         # Get a random number of monsters
         number_of_monsters = randint(0, max_monsters_per_room)
+        number_of_items = randint(0, max_items_per_room)
 
         for i in range(number_of_monsters):
             # choose a random location in the room
@@ -133,6 +135,18 @@ class GameMap:
                                      fighter=fighter_c, ai=ai_c)
 
                 entities.append(monster)
+
+        for i in range(number_of_items):
+            x = randint(room.x1 + 1, room.x2 - 1)
+            y = randint(room.y1 + 1, room.y2 - 1)
+
+            if not any([entity for entity in entities if entity.x == x and entity.y == y]):
+                item_c = Item()
+                item = Entity(x, y, sprites.get('potion'),
+                              colors.get('health_pot'), colors.get('obj_back'),
+                              'Potion of heals', render_ord=RenderOrder.ITEM,
+                              item=item_c)
+                entities.append(item)
 
     def is_blocked(self, x, y):
         if self.tiles[x][y].blocked:
