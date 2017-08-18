@@ -1,10 +1,12 @@
 from random import randint
+import libtcodpy as libtcod
 
 from components.ai import BasicMonster
 from components.fighter import Fighter
 from components.item import Item
 from entity import Entity
-from item_functions import cast_lightning, heal
+from game_messages import Message
+from item_functions import cast_confuse, cast_fireball, cast_lightning, heal
 from map_objects.rectangle import Rect
 from map_objects.tile import Tile
 from render_functions import RenderOrder
@@ -153,6 +155,35 @@ class GameMap:
                                   'Potion of heals',
                                   render_ord=RenderOrder.ITEM,
                                   item=item_c)
+                elif item_chance < 80:
+                    t_msg = Message(
+                        'Left-Click a target tile for the fireball, or' +
+                        ' Right-click to cancel', colors.get('msg_system')
+                    )
+                    item_c = Item(
+                        use_func=cast_fireball, targeting=True,
+                        targeting_msg=t_msg, damage=12, radius=3
+                    )
+                    item = Entity(
+                        x, y, sprites.get('scroll'), colors.get('fireball'),
+                        colors.get('obj_back'), 'Fireball Scroll',
+                        render_ord=RenderOrder.ITEM, item=item_c
+                    )
+                elif item_chance < 90:
+                    t_msg = Message(
+                        'Left-Click a enemy to confuse it, or' +
+                        ' Right-click to cancel', colors.get('msg_system')
+                    )
+                    item_c = Item(
+                        use_func=cast_confuse, targeting=True,
+                        targeting_msg=t_msg
+                    )
+                    item = Entity(
+                        x, y, sprites.get('scroll'), colors.get('confuse'),
+                        colors.get('obj_back'), 'Confusion Scroll',
+                        render_ord=RenderOrder.ITEM,
+                        item=item_c
+                    )
                 else:
                     item_c = Item(use_func=cast_lightning,
                                   damage=20, maximum_range=5)

@@ -63,3 +63,23 @@ def inventory_menu(con, title, header, inventory, inventory_w, sw, sh, color):
         options = [item.name for item in inventory.items]
 
     menu(con, title, header, options, inventory_w, sw, sh, color)
+
+
+def main_menu(con, background_img, screen_width, screen_height):
+    libtcod.image_blit_2x(background_img, 0, 0, 0)
+
+    libtcod.console_set_default_foreground(0, libtcod.light_yellow)
+    libtcod.console_print_ex(
+        0, int(screen_width / 2),int(screen_height / 2) - 4, libtcod.BKGND_NONE,
+        libtcod.CENTER, 'McGuffin Quest'
+    )
+    libtcod.console_print_ex(
+        0, int(screen_width / 2), int(screen_height - 2), libtcod.BKGND_NONE,
+        libtcod.CENTER, 'By usrTaken'
+    )
+
+    menu(con, '','', ['Play a new game', 'Continue last Game', 'Quit'],
+         24, screen_width, screen_height, libtcod.black)
+
+def msg_box(con, title, header, width, sw, sh, color):
+    menu(con, title, header, [], width, sw, sh, color)

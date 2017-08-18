@@ -1,160 +1,32 @@
 import libtcodpy as libtcod
 
-from components.fighter import Fighter
-from components.inventory import Inventory
 from death_functions import kill_monster, kill_player
-from entity import Entity, get_blocking_entities_at_location
+from entity import get_blocking_entities_at_location
 from fov_functions import initialize_fov, recompute_fov
-from game_messages import Message, MessageLog
+from game_messages import Message
 from game_states import GameStates
 from image import take_screenshot
-from input_handlers import handle_keys
-from map_objects.game_map import GameMap
-from render_functions import clear_all, render_all, RenderOrder
+from input_handlers import handle_keys, handle_mouse, handle_main_menu
+from loader_fuctions.initialize_new_game import get_constants, get_game_vars
+from loader_fuctions.data_loaders import load_game, save_game
+from menus import main_menu, msg_box
+from render_functions import clear_all, render_all
 
 
-def main():
-    game_title = 'Quest for the McGuffin'
-    game_ver = ' py3_2017.08.17'
-
-    # Window
-    screen_width = 80
-    screen_height = 50
-
-    # Map
-    map_width = 60
-    map_height = 40
-
-    room_max_size = 10
-    room_min_size = 6
-    max_rooms = 30
-
-    fov_algo = libtcod.FOV_RESTRICTIVE
-    fov_lw = True
-    fov_r = 10
-
-    max_monsters_per_room = 3
-    max_items_per_room = 2
-
-    # Look
-    look_width = 58
-    look_height = 1
-    look_x = 1
-    look_y = 41
-
-    # Message Log
-    msg_width = 58
-    msg_height = 5
-    msg_x = 1
-    msg_y = 44
-
-    # Information Pane
-    info_width = 20
-    info_height = 50
-    info_x = 60
-    info_y = 0
-
-    # Interface
-    bar_width = 15
-
-    # Screenshot functions
-    f_path = './screenshots'
-    img_path = './screenshots/ss_0.png'
-    rn_path = './screenshots/ss_%s.png'
-    tmp_path = './screenshots/tmp.png'
-
-    # future wall '206'
-    sprites = {
-        'death': '%',
-        'floor': '.',
-        'ne_tile': 178,
-        'orc': 'o',
-        'player': '@',
-        'potion': 173,
-        'scroll': 19,
-        'troll': 'T',
-        'wall': '#',
-        'wall_w': 181,
-        'wall_e': 198,
-        'wall_n': 208,
-        'wall_s': 210,
-        'wall_we': 205,
-        'wall_ns': 186,
-        'wall_ne': 200,
-        'wall_nw': 188,
-        'wall_se': 201,
-        'wall_sw': 187,
-        'wall_nes': 204,
-        'wall_nws': 185,
-        'wall_wse': 203,
-        'wall_wne': 202
-    }
-
-    colors = {
-        'death': libtcod.dark_red,
-        'health_pot': libtcod.red,
-        'lightning_scroll': libtcod.sky,
-        'orc': libtcod.desaturated_green,
-        'player_fore': libtcod.black,
-        'player_back': libtcod.green,
-        'troll': libtcod.darker_green,
-        'dark_wall': libtcod.darker_grey,
-        'light_wall': libtcod.light_sepia,
-        'dark_ground': libtcod.dark_grey,
-        'light_ground': libtcod.lighter_sepia,
-        'tile_back': libtcod.black,
-        'ofov_tile_back': libtcod.darkest_grey,
-        'obj_back': libtcod.black,
-        'ofov_obj_back': libtcod.darkest_grey,
-        'use_inventory': libtcod.azure,
-        'drop_inventory': libtcod.red,
-        'msg_default': libtcod.white,
-        'msg_pickup': libtcod.azure,
-        'msg_heal': libtcod.violet,
-        'msg_lighning': libtcod.sky,
-        'msg_drop': libtcod.crimson,
-        'msg_system': libtcod.light_han,
-        'msg_error': libtcod.pink,
-        'msg_p_dead': libtcod.red,
-        'msg_m_dead': libtcod.orange
-    }
-
-    fighter_c = Fighter(hp=30, defense=2, power=5)
-    inventory_c = Inventory(26)
-    player = Entity(0, 0, sprites.get('player'), colors.get('player_fore'),
-                    colors.get('player_back'), 'Player', blocks=True,
-                    render_ord=RenderOrder.ACTOR, fighter=fighter_c,
-                    inventory=inventory_c)
-    entities = [player]
-
-    libtcod.console_set_custom_font('cp437_8x8.png',
-                                    libtcod.FONT_TYPE_GREYSCALE |
-                                    libtcod.FONT_LAYOUT_ASCII_INROW)
-
-    libtcod.console_init_root(screen_width, screen_height, game_title +
-                              game_ver, False)
-
-    mapcon = libtcod.console_new(map_width, map_height)
-    infocon = libtcod.console_new(info_width, info_height)
-    msgcon = libtcod.console_new(msg_width, msg_height)
-    lookcon = libtcod.console_new(look_width, look_height)
-
-    game_map = GameMap(map_width, map_height)
-    game_map.make_map(max_rooms, room_min_size, room_max_size, map_width,
-                      map_height, player, entities, sprites, colors,
-                      max_monsters_per_room, max_items_per_room)
+def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
+              lookcon, msgcon, constants):
 
     fov_recompute = True
 
     fov_map = initialize_fov(game_map)
-
-    msg_log = MessageLog(0, msg_width, msg_height)
 
     key = libtcod.Key()
     mouse = libtcod.Mouse()
 
     game_state = GameStates.PLAYERS_TURN
     previous_game_state = game_state
+
+    targeting_item = None
 
     while not libtcod.console_is_window_closed():
 
@@ -163,24 +35,30 @@ def main():
                                     key, mouse)
 
         if fov_recompute:
-            recompute_fov(fov_map, player.x, player.y, fov_r, fov_lw, fov_algo)
+            recompute_fov(fov_map, player.x, player.y, constants['fov_r'],
+                          constants['fov_lw'], constants['fov_algo'])
 
-#         libtcod.console_flush()
         render_all(mapcon, infocon, lookcon, msgcon, entities, player,
-                   game_map, fov_map, fov_r, screen_width, screen_height,
-                   info_width, info_height, look_width, look_height, map_width,
-                   map_height, msg_width, msg_height, info_x, info_y, look_x,
-                   look_y, msg_x, msg_y, msg_log, bar_width, mouse,
-                   sprites, colors, game_state)
+                   game_map, fov_map,
+                   constants['fov_r'], constants['screen_width'],
+                   constants['screen_height'], constants['info_width'],
+                   constants['info_height'], constants['look_width'],
+                   constants['look_height'], constants['map_width'],
+                   constants['map_height'], constants['msg_width'],
+                   constants['msg_height'], constants['info_x'],
+                   constants['info_y'], constants['look_x'],
+                   constants['look_y'], constants['msg_x'], constants['msg_y'],
+                   msg_log, constants['bar_width'], mouse,
+                   constants['sprites'], constants['colors'], game_state)
 
         fov_recompute = False
-        # fill_rects()
 
         libtcod.console_flush()
 
         clear_all(mapcon, entities)
 
         action = handle_keys(key, game_state)
+        mouse_action = handle_mouse(mouse)
 
         move = action.get('move')
         pickup = action.get('pickup')
@@ -190,6 +68,9 @@ def main():
         end = action.get('exit')
         fullscreen = action.get('fullscreen')
         screenshot = action.get('screenshot')
+
+        left_click = mouse_action.get('left_click')
+        right_click = mouse_action.get('right_click')
 
         player_turn_results = []
 
@@ -221,7 +102,7 @@ def main():
             else:
                 msg_log.add_message(Message(
                     'There is nothing to pick up here.',
-                    colors.get('msg_error')
+                    libtcod.pink
                 ))
 
         if show_inventory:
@@ -245,18 +126,36 @@ def main():
             elif game_state == GameStates.DROP_INVENTORY:
                 player_turn_results.extend(player.inventory.drop_item(item))
 
+        if game_state == GameStates.TARGETING:
+            if left_click:
+                target_x, target_y = left_click
+
+                item_use_results = player.inventory.use(
+                    targeting_item, entities=entities, fov_map=fov_map,
+                    target_x=target_x, target_y=target_y
+                )
+                player_turn_results.extend(item_use_results)
+            elif right_click:
+                player_turn_results.append({
+                    'targeting_cancelled': True
+                })
+
         if end:
             if game_state in (GameStates.SHOW_INVENTORY,
                               GameStates.DROP_INVENTORY):
                 game_state = previous_game_state
+            elif game_state == GameStates.TARGETING:
+                player_turn_results.append({'targeting_cancelled': True})
             else:
+                save_game(player, entities, game_map, msg_log, game_state)
                 return True
 
         if fullscreen:
             libtcod.console_set_fullscreen(not libtcod.console_is_fullscreen())
 
         if screenshot:
-            take_screenshot(f_path, img_path, rn_path, tmp_path)
+            take_screenshot(constants['f_path'], constants['img_path'],
+                            constants['rn_path'], constants['tmp_path'])
 
         for player_turn_result in player_turn_results:
             message = player_turn_result.get('message')
@@ -264,16 +163,21 @@ def main():
             item_added = player_turn_result.get('item_added')
             item_consumed = player_turn_result.get('consumed')
             item_dropped = player_turn_result.get('item_dropped')
+            targeting = player_turn_result.get('targeting')
+            targeting_cancelled = player_turn_result.get('targeting_cancelled')
 
             if message:
                 msg_log.add_message(message)
 
             if dead_entity:
                 if dead_entity == player:
-                    message, game_state = kill_player(dead_entity, sprites,
-                                                      colors)
+                    message, game_state = kill_player(dead_entity,
+                                                      constants['sprites'],
+                                                      constants['colors'])
                 else:
-                    message = kill_monster(dead_entity, sprites, colors)
+                    message = kill_monster(dead_entity,
+                                           constants['sprites'],
+                                           constants['colors'])
 
                 msg_log.add_message(message)
 
@@ -289,6 +193,19 @@ def main():
                 entities.append(item_dropped)
 
                 game_state = GameStates.ENEMY_TURN
+
+            if targeting:
+                previous_game_state = GameStates.PLAYERS_TURN
+                game_state = GameStates.TARGETING
+
+                targeting_item = targeting
+
+                msg_log.add_message(targeting_item.item.targeting_msg)
+
+            if targeting_cancelled:
+                game_state = previous_game_state
+
+                msg_log.add_message(Message('Targeting cancelled'))
 
         if game_state == GameStates.ENEMY_TURN:
             for entity in entities:
@@ -307,10 +224,12 @@ def main():
                         if dead_entity:
                             if dead_entity == player:
                                 message, game_state = kill_player(
-                                    dead_entity, sprites, colors)
+                                    dead_entity, constants['sprites'],
+                                    constants['colors'])
                             else:
-                                message = kill_monster(dead_entity, sprites,
-                                                       colors)
+                                message = kill_monster(dead_entity,
+                                                       constants['sprites'],
+                                                       constants['colors'])
 
                             msg_log.add_message(message)
 
@@ -323,6 +242,88 @@ def main():
             else:
                 game_state = GameStates.PLAYERS_TURN
 
+
+def main():
+    constants = get_constants()
+
+    libtcod.console_set_custom_font('./assets/cp437_8x8.png',
+                                    libtcod.FONT_TYPE_GREYSCALE |
+                                    libtcod.FONT_LAYOUT_ASCII_INROW)
+
+    libtcod.console_init_root(
+        constants['screen_width'], constants['screen_height'],
+        constants['window_title'], False
+    )
+
+    mapcon = libtcod.console_new(constants['map_width'],
+                                 constants['map_height'])
+    infocon = libtcod.console_new(constants['info_width'],
+                                  constants['info_height'])
+    msgcon = libtcod.console_new(constants['msg_width'],
+                                 constants['msg_height'])
+    lookcon = libtcod.console_new(constants['look_width'],
+                                  constants['look_height'])
+
+    player = None
+    entities = []
+    game_map = None
+    msg_log = None
+    game_state = None
+
+    show_main_menu = True
+    show_load_err_msg = False
+
+    main_menu_background_img = libtcod.image_load('./assets/menu_background.png')
+
+    key_press = libtcod.EVENT_KEY_PRESS
+    mouse_click = libtcod.EVENT_MOUSE
+    key = libtcod.Key()
+    mouse = libtcod.Mouse()
+
+    while not libtcod.console_is_window_closed():
+        libtcod.sys_check_for_event(key_press | mouse_click, key, mouse)
+
+        if show_main_menu:
+            main_menu(mapcon, main_menu_background_img,
+                      constants['screen_width'], constants['screen_height'])
+
+            if show_load_err_msg:
+                msg_box(mapcon, 'Error', 'No save game to load', 50,
+                        constants['screen_width'], constants['screen_height'],
+                        libtcod.red)
+
+            libtcod.console_flush()
+
+            action = handle_main_menu(key)
+
+            new_game = action.get('new_game')
+            load_saved_game = action.get('load_game')
+            end_game = action.get('exit')
+
+            if show_load_err_msg and (new_game or load_saved_game or end_game):
+                show_load_err_msg = False
+            elif new_game:
+                player, entities, game_map, msg_log, game_state = get_game_vars(
+                    constants
+                )
+                game_state = GameStates.PLAYERS_TURN
+
+                show_main_menu = False
+            elif load_saved_game:
+                try:
+                    player, entities, game_map, msg_log, game_state = load_game()
+                    show_main_menu = False
+                except FileNotFoundError:
+                    show_load_err_msg = True
+            elif end_game:
+                break
+
+        else:
+            libtcod.console_clear(mapcon)
+            play_game(player, entities, game_map, msg_log, game_state,
+                      mapcon, infocon, lookcon, msgcon, constants
+                      )
+            show_main_menu = True
 
 if __name__ == '__main__':
     main()

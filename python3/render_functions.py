@@ -94,7 +94,7 @@ def render_all(con0, con1, con2, con3, entities, player, game_map, fov_map,
     get_look(con2, lw, lh, mouse, entities, fov_map)
 
     # Print the game messages, one line at a time
-    display_msgs(con3, 0, msg_log)
+    display_msgs(con3, 4, msg_log)
     blit_cons(con0, con1, con2, con3, mpw, mph, iw, ih, ix, iy, lw, lh, lx, ly,
               msw, msh, msx, msy)
 
@@ -186,7 +186,7 @@ def display_msgs(con3, y, msg_log):
         libtcod.console_set_default_foreground(con3, message.color * colorCoef)
         libtcod.console_print_ex(con3, msg_log.x, y, libtcod.BKGND_NONE,
                                  libtcod.LEFT, message.text)
-        y += 1
+        y -= 1
         if colorCoef < 1.0:
             colorCoef += 0.2
 
