@@ -100,14 +100,22 @@ def render_all(con0, con1, con2, con3, entities, player, game_map, fov_map,
 
     draw_frames(lw, lh, msw, msh, iw, ih)
 
-    if game_state == GameStates.SHOW_INVENTORY:
+    if game_state in (GameStates.SHOW_INVENTORY, GameStates.DROP_INVENTORY):
+        if game_state == GameStates.SHOW_INVENTORY:
+            inventory_title = 'Inventory: Use Menu'
+            inventory_header = ('Press the Key next to an item to use it,' +
+                                ' or Esc to cancel.\n')
+            inventory_col = colors.get('use_inventory')
+        else:
+            inventory_title = 'Inventory: Drop Menu'
+            inventory_header = ('Press the key next to an item to drop it,' +
+                                'or Esc to cancel\n')
+            inventory_col = colors.get('drop_inventory')
         inventory_menu(
-            con0, 'Inventory',
-            'Press the key next to an item to use it, or Esc to cancel.\n',
-            player.inventory, 50, sw, sh
+            con0, inventory_title,
+            inventory_header,
+            player.inventory, 50, sw, sh, inventory_col
         )
-
-
     # fill_rects(con1, con2, con3, lw, lh, iw, ih, msw, msh)
 
 

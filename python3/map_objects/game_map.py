@@ -4,6 +4,7 @@ from components.ai import BasicMonster
 from components.fighter import Fighter
 from components.item import Item
 from entity import Entity
+from item_functions import cast_lightning, heal
 from map_objects.rectangle import Rect
 from map_objects.tile import Tile
 from render_functions import RenderOrder
@@ -140,12 +141,26 @@ class GameMap:
             x = randint(room.x1 + 1, room.x2 - 1)
             y = randint(room.y1 + 1, room.y2 - 1)
 
-            if not any([entity for entity in entities if entity.x == x and entity.y == y]):
-                item_c = Item()
-                item = Entity(x, y, sprites.get('potion'),
-                              colors.get('health_pot'), colors.get('obj_back'),
-                              'Potion of heals', render_ord=RenderOrder.ITEM,
-                              item=item_c)
+            if not any([entity for entity in entities if entity.x == x and
+                        entity.y == y]):
+                item_chance = randint(0, 100)
+
+                if item_chance < 70:
+                    item_c = Item(use_func=heal, amount=4)
+                    item = Entity(x, y, sprites.get('potion'),
+                                  colors.get('health_pot'),
+                                  colors.get('obj_back'),
+                                  'Potion of heals',
+                                  render_ord=RenderOrder.ITEM,
+                                  item=item_c)
+                else:
+                    item_c = Item(use_func=cast_lightning,
+                                  damage=20, maximum_range=5)
+                    item = Entity(x, y, sprites.get('scroll'),
+                                  colors.get('lightning_scroll'),
+                                  colors.get('obj_back'), 'Lightning Scroll',
+                                  render_ord=RenderOrder.ITEM,
+                                  item=item_c)
                 entities.append(item)
 
     def is_blocked(self, x, y):

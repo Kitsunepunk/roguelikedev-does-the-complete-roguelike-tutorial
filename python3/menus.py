@@ -1,7 +1,7 @@
 import libtcodpy as libtcod
 
 
-def menu(con, title, header, options, width, sw, sh):
+def menu(con, title, header, options, width, sw, sh, color):
     if len(options) > 26:
         raise ValueError('Cannot have a menu with more than 26 options.')
 
@@ -21,7 +21,7 @@ def menu(con, title, header, options, width, sw, sh):
     libtcod.console_set_default_foreground(menucon, libtcod.white)
 
     if header != '':
-        libtcod.console_set_default_background(menucon, libtcod.azure)
+        libtcod.console_set_default_background(menucon, color)
         libtcod.console_print_frame(
             menucon, 0, 0, width, height, True, libtcod.BKGND_SET, title
         )
@@ -54,11 +54,12 @@ def menu(con, title, header, options, width, sw, sh):
         menucon, 0, 0, width, height, 0, x, y, 1.0, 0.7
     )
 
-def inventory_menu(con, title, header, inventory, inventory_w, sw, sh):
+
+def inventory_menu(con, title, header, inventory, inventory_w, sw, sh, color):
     # show a menu with each item of the inventory as an option
     if len(inventory.items) == 0:
         options = ['Inventory is empty.']
     else:
         options = [item.name for item in inventory.items]
 
-    menu(con, title, header, options, inventory_w, sw, sh)
+    menu(con, title, header, options, inventory_w, sw, sh, color)

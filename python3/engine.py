@@ -15,7 +15,7 @@ from render_functions import clear_all, render_all, RenderOrder
 
 def main():
     game_title = 'Quest for the McGuffin'
-    game_ver = ' py3_2017.08.11'
+    game_ver = ' py3_2017.08.17'
 
     # Window
     screen_width = 80
@@ -71,6 +71,7 @@ def main():
         'orc': 'o',
         'player': '@',
         'potion': 173,
+        'scroll': 19,
         'troll': 'T',
         'wall': '#',
         'wall_w': 181,
@@ -92,6 +93,7 @@ def main():
     colors = {
         'death': libtcod.dark_red,
         'health_pot': libtcod.red,
+        'lightning_scroll': libtcod.sky,
         'orc': libtcod.desaturated_green,
         'player_fore': libtcod.black,
         'player_back': libtcod.green,
@@ -104,8 +106,13 @@ def main():
         'ofov_tile_back': libtcod.darkest_grey,
         'obj_back': libtcod.black,
         'ofov_obj_back': libtcod.darkest_grey,
+        'use_inventory': libtcod.azure,
+        'drop_inventory': libtcod.red,
         'msg_default': libtcod.white,
         'msg_pickup': libtcod.azure,
+        'msg_heal': libtcod.violet,
+        'msg_lighning': libtcod.sky,
+        'msg_drop': libtcod.crimson,
         'msg_system': libtcod.light_han,
         'msg_error': libtcod.pink,
         'msg_p_dead': libtcod.red,
@@ -173,11 +180,13 @@ def main():
 
         clear_all(mapcon, entities)
 
-        action = handle_keys(key)
+        action = handle_keys(key, game_state)
 
         move = action.get('move')
         pickup = action.get('pickup')
         show_inventory = action.get('show_inventory')
+        drop_inventory = action.get('drop_inventory')
+        inventory_index = action.get('inventory_index')
         end = action.get('exit')
         fullscreen = action.get('fullscreen')
         screenshot = action.get('screenshot')
@@ -219,8 +228,26 @@ def main():
             previous_game_state = game_state
             game_state = GameStates.SHOW_INVENTORY
 
-        if end:
+        if drop_inventory:
+            previous_game_state = game_state
+            game_state = GameStates.DROP_INVENTORY
+
+        if (inventory_index is not None and previous_game_state !=
+                GameStates.PLAYER_DEAD and inventory_index <
+                len(player.inventory.items)):
+            item = player.inventory.items[inventory_index]
             if game_state == GameStates.SHOW_INVENTORY:
+                player_turn_results.extend(
+                    player.inventory.use(
+                        item, entities=entities, fov_map=fov_map
+                    )
+                )
+            elif game_state == GameStates.DROP_INVENTORY:
+                player_turn_results.extend(player.inventory.drop_item(item))
+
+        if end:
+            if game_state in (GameStates.SHOW_INVENTORY,
+                              GameStates.DROP_INVENTORY):
                 game_state = previous_game_state
             else:
                 return True
@@ -235,6 +262,8 @@ def main():
             message = player_turn_result.get('message')
             dead_entity = player_turn_result.get('dead')
             item_added = player_turn_result.get('item_added')
+            item_consumed = player_turn_result.get('consumed')
+            item_dropped = player_turn_result.get('item_dropped')
 
             if message:
                 msg_log.add_message(message)
@@ -250,6 +279,14 @@ def main():
 
             if item_added:
                 entities.remove(item_added)
+
+                game_state = GameStates.ENEMY_TURN
+
+            if item_consumed:
+                game_state = GameStates.ENEMY_TURN
+
+            if item_dropped:
+                entities.append(item_dropped)
 
                 game_state = GameStates.ENEMY_TURN
 

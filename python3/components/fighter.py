@@ -3,6 +3,7 @@ import libtcodpy as libtcod
 from game_messages import Message
 from rng_functions import dice_roll
 
+
 class Fighter:
     def __init__(self, hp, defense, power):
         self.max_hp = hp
@@ -20,6 +21,12 @@ class Fighter:
             results.append({'dead': self.owner})
 
         return results
+
+    def heal(self, amount):
+        self.hp += amount
+
+        if self.hp > self.max_hp:
+            self.hp = self.max_hp
 
     def attack(self, target):
 
