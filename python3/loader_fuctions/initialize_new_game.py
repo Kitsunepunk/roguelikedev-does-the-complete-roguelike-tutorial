@@ -3,7 +3,7 @@ import libtcodpy as libtcod
 from components.fighter import Fighter
 from components.inventory import Inventory
 from entity import Entity
-from game_messages import MessageLog
+from game_messages import Message, MessageLog
 from game_states import GameStates
 from map_objects.game_map import GameMap
 from render_functions import RenderOrder
@@ -180,6 +180,17 @@ def get_game_vars(constants):
 
     msg_log = MessageLog(1, constants['msg_width'] - 5,
                          constants['msg_height'] - 2)
+
+    msg_log.add_message(Message('test', libtcod.black))
+    msg_log.add_message(Message('test', libtcod.black))
+    msg_log.add_message(Message('test', libtcod.black))
+    msg_log.add_message(Message('test', libtcod.black))
+    msg_log.add_message(
+        Message(
+            'Your village is in danger find the McGuffin to save it!' +
+            ' If you can...',
+        )
+    )
 
     game_state = GameStates.PLAYERS_TURN
 

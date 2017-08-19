@@ -15,6 +15,9 @@ from render_functions import clear_all, render_all
 
 def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
               lookcon, msgcon, constants):
+    """
+    The game loop
+    """
 
     fov_recompute = True
 
@@ -275,7 +278,9 @@ def main():
     show_main_menu = True
     show_load_err_msg = False
 
-    main_menu_background_img = libtcod.image_load('./assets/menu_background.png')
+    main_menu_background_img = libtcod.image_load(
+        './assets/menu_background.png'
+    )
 
     key_press = libtcod.EVENT_KEY_PRESS
     mouse_click = libtcod.EVENT_MOUSE

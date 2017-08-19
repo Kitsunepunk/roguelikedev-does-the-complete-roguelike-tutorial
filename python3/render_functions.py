@@ -200,13 +200,17 @@ def player_info(con1, game_map, x, y, iw, ih, player, bar_width):
     libtcod.console_print_ex(con1, x, y + 12, libtcod.BKGND_NONE, libtcod.LEFT,
                              'Equipment')
 
-    libtcod.console_hline(con1, x - 1, ih - 6, iw - 2, libtcod.BKGND_NONE)
-    libtcod.console_print_ex(con1, x, ih - 4, libtcod.BKGND_NONE, libtcod.LEFT,
+    libtcod.console_hline(con1, x - 1, ih - 8, iw - 2, libtcod.BKGND_NONE)
+    libtcod.console_print_ex(con1, x, ih - 6, libtcod.BKGND_NONE, libtcod.LEFT,
                              'Inventory')
-    libtcod.console_print_ex(con1, x, ih - 3, libtcod.BKGND_NONE, libtcod.LEFT,
+    libtcod.console_print_ex(con1, x, ih - 5, libtcod.BKGND_NONE, libtcod.LEFT,
                              'Total Items: {0}'.format(
                                  str(len(player.inventory.items))
                              ))
+    libtcod.console_hline(con1, x - 1, ih - 3, iw - 2, libtcod.BKGND_NONE)
+    libtcod.console_set_default_foreground(con1, libtcod.desaturated_han)
+    libtcod.console_print_ex(con1, x, ih - 2, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'Press ? for help')
 
 
 def display_msgs(con3, msw, msh, y, msg_log):
