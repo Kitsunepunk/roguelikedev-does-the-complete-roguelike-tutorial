@@ -14,6 +14,8 @@ def get_constants():
     game_ver = ' py3_2017.08.18'
     window_title = game_title + game_ver
 
+    limit_fps = 20
+
     # Window
     screen_width = 80
     screen_height = 50
@@ -30,20 +32,20 @@ def get_constants():
     fov_lw = True
     fov_r = 10
 
-    max_monsters_per_room = 3
-    max_items_per_room = 2
+    max_monsters_per_room = 0
+    max_items_per_room = 8
 
     # Look
-    look_width = 58
-    look_height = 1
-    look_x = 1
-    look_y = 41
+    look_width = 60
+    look_height = 3
+    look_x = 0
+    look_y = 40
 
     # Message Log
-    msg_width = 58
-    msg_height = 5
-    msg_x = 1
-    msg_y = 44
+    msg_width = 60
+    msg_height = 7
+    msg_x = 0
+    msg_y = 43
 
     # Information Pane
     info_width = 20
@@ -52,7 +54,7 @@ def get_constants():
     info_y = 0
 
     # Interface
-    bar_width = 15
+    bar_width = 16
 
     # Screenshot functions
     f_path = './screenshots'
@@ -121,6 +123,7 @@ def get_constants():
 
     constants = {
         'window_title': window_title,
+        'limit_fps': limit_fps,
         'screen_width': screen_width,
         'screen_height': screen_height,
         'bar_width': bar_width,
@@ -175,7 +178,8 @@ def get_game_vars(constants):
                       constants['max_monsters_per_room'],
                       constants['max_items_per_room'])
 
-    msg_log = MessageLog(0, constants['msg_width'], constants['msg_height'])
+    msg_log = MessageLog(1, constants['msg_width'] - 5,
+                         constants['msg_height'] - 2)
 
     game_state = GameStates.PLAYERS_TURN
 

@@ -89,12 +89,13 @@ def render_all(con0, con1, con2, con3, entities, player, game_map, fov_map,
     for entity in entities_in_render_ord:
         draw_entity(con0, entity, fov_map)
 
-    player_info(con1, 2, 2, iw, ih, player, bar_width)
+    player_info(con1, game_map, 2, 2, iw, ih, player, bar_width)
 
     get_look(con2, lw, lh, mouse, entities, fov_map)
 
     # Print the game messages, one line at a time
-    display_msgs(con3, 4, msg_log)
+    display_msgs(con3, msw, msh, 1, msg_log)
+
     blit_cons(con0, con1, con2, con3, mpw, mph, iw, ih, ix, iy, lw, lh, lx, ly,
               msw, msh, msx, msy)
 
@@ -144,13 +145,12 @@ def blit_cons(con0, con1, con2, con3, mpw, mph, iw, ih, ix, iy, lw, lh, lx, ly,
     libtcod.console_blit(con3, 0, 0, msw, msh, 0, msx, msy)
 
 
-
 def draw_frames(lw, lh, msw, msh, iw, ih):
     libtcod.console_set_default_foreground(0, libtcod.white)
     libtcod.console_set_default_background(0, libtcod.black)
-    libtcod.console_print_frame(0, 0, 40, lw + 2, lh + 2,
-                                 False, libtcod.BKGND_NONE, 'Look')
-    libtcod.console_print_frame(0, 0, 43, msw + 2, msh + 2,
+    libtcod.console_print_frame(0, 0, 40, lw, lh,
+                                False, libtcod.BKGND_NONE, 'Look')
+    libtcod.console_print_frame(0, 0, 43, msw, msh,
                                 False, libtcod.BKGND_NONE, 'Message Log')
     libtcod.console_print_frame(0, 60, 0, iw, ih,
                                 False, libtcod.BKGND_NONE, 'Information')
@@ -165,7 +165,7 @@ def fill_rects(con1, con2, con3, lw, lh, iw, ih, msw, msh):
     libtcod.console_rect(con3, 0, 0, msw, msh, True, libtcod.BKGND_SET)
 
 
-def player_info(con1, x, y, iw, ih, player, bar_width):
+def player_info(con1, game_map, x, y, iw, ih, player, bar_width):
     libtcod.console_set_default_foreground(con1, libtcod.white)
     libtcod.console_set_default_background(con1, libtcod.black)
     libtcod.console_clear(con1)
@@ -177,24 +177,59 @@ def player_info(con1, x, y, iw, ih, player, bar_width):
     render_bar(con1, x, y + 1, bar_width, 'HP', player.fighter.hp,
                player.fighter.max_hp, libtcod.light_red,
                libtcod.darker_red)
+    render_bar(con1, x, y + 3, bar_width, 'Placeholder', 0,
+               1, libtcod.light_red,
+               libtcod.darker_red)
+    libtcod.console_print_ex(con1, x, y + 6, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'POW(MOD): {0}({1})'.format(
+                                 player.fighter.power,
+                                 player.fighter.power))
+
+    libtcod.console_print_ex(con1, x, y + 7, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'DEF(MOD): {0}({1})'.format(
+                                 player.fighter.defense,
+                                 player.fighter.defense))
+
+    libtcod.console_print_ex(con1, x, y + 9, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'Dungeon Level: {0}'.format(
+                                 str(game_map.dungeon_level)
+                             ))
+
+    libtcod.console_hline(con1, x - 1, y + 10, iw - 2, libtcod.BKGND_NONE)
+
+    libtcod.console_print_ex(con1, x, y + 12, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'Equipment')
+
+    libtcod.console_hline(con1, x - 1, ih - 6, iw - 2, libtcod.BKGND_NONE)
+    libtcod.console_print_ex(con1, x, ih - 4, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'Inventory')
+    libtcod.console_print_ex(con1, x, ih - 3, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'Total Items: {0}'.format(
+                                 str(len(player.inventory.items))
+                             ))
 
 
-def display_msgs(con3, y, msg_log):
+def display_msgs(con3, msw, msh, y, msg_log):
     libtcod.console_clear(con3)
+    libtcod.console_print_frame(con3, 0, 43, msw, msh,
+                                False, libtcod.BKGND_NONE, 'Message Log')
+    
+    y = 1
     colorCoef = 0.4
     for message in msg_log.messages:
         libtcod.console_set_default_foreground(con3, message.color * colorCoef)
         libtcod.console_print_ex(con3, msg_log.x, y, libtcod.BKGND_NONE,
                                  libtcod.LEFT, message.text)
-        y -= 1
+        y += 1
         if colorCoef < 1.0:
             colorCoef += 0.2
 
+
 def get_look(con2, lw, lh, mouse, entities, fov_map):
     libtcod.console_clear(con2)
-    libtcod.console_print_frame(0, 0, 40, lw + 2, lh + 2,
-                                 False, libtcod.BKGND_NONE, 'Look')
+    libtcod.console_print_frame(con2, 0, 40, lw, lh,
+                                False, libtcod.BKGND_NONE, 'Look')
     libtcod.console_set_default_foreground(con2, libtcod.light_grey)
-    libtcod.console_print_ex(con2, 0, 0, libtcod.BKGND_NONE, libtcod.LEFT,
+    libtcod.console_print_ex(con2, 1, 1, libtcod.BKGND_NONE, libtcod.LEFT,
                              get_names_under_mouse(mouse, entities, fov_map))
 

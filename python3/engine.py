@@ -28,6 +28,8 @@ def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
 
     targeting_item = None
 
+    libtcod.sys_set_fps(constants['limit_fps'])
+
     while not libtcod.console_is_window_closed():
 
         libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS |
@@ -279,6 +281,8 @@ def main():
     mouse_click = libtcod.EVENT_MOUSE
     key = libtcod.Key()
     mouse = libtcod.Mouse()
+
+    libtcod.sys_set_fps(constants['limit_fps'])
 
     while not libtcod.console_is_window_closed():
         libtcod.sys_check_for_event(key_press | mouse_click, key, mouse)
