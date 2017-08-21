@@ -33,8 +33,8 @@ def get_constants():
     fov_lw = True
     fov_r = 10
 
-    max_monsters_per_room = 0
-    max_items_per_room = 8
+    max_monsters_per_room = 3
+    max_items_per_room = 2
 
     # Look
     look_width = 60
@@ -171,7 +171,7 @@ def get_game_vars(constants):
     player = Entity(0, 0, '@', libtcod.black, libtcod.light_azure, 'Player',
                     blocks=True,
                     render_ord=RenderOrder.ACTOR, fighter=fighter_c,
-                    inventory=inventory_c)
+                    inventory=inventory_c, level=level_c)
     entities = [player]
 
     game_map = GameMap(constants['map_width'], constants['map_height'])

@@ -2,7 +2,7 @@ import libtcodpy as libtcod
 from enum import Enum
 
 from game_states import GameStates
-from menus import inventory_menu
+from menus import character_screen, help_screen, inventory_menu, level_up_menu
 
 
 class RenderOrder(Enum):
@@ -120,6 +120,17 @@ def render_all(con0, con1, con2, con3, entities, player, game_map, fov_map,
         )
     # fill_rects(con1, con2, con3, lw, lh, iw, ih, msw, msh)
 
+    elif game_state == GameStates.LEVEL_UP:
+        level_up_menu(con0, 'Choose a Stat to raise: ', player, 40, sw, sh)
+
+    elif game_state == GameStates.CHARACTER_SCREEN:
+        character_screen('character Screen', player, 30, 10, sw, sh,
+                         libtcod.dark_sepia)
+
+    elif game_state == GameStates.GAME_HELP:
+        help_screen('Help Screen', 60, 34, sw, sh, libtcod.white,
+                    libtcod.light_grey, libtcod.blue)
+
 
 def clear_all(con0, entities):
     for entity in entities:
@@ -183,9 +194,9 @@ def player_info(con1, game_map, x, y, iw, ih, player, bar_width):
     render_bar(con1, x, y + 1, bar_width, 'HP', player.fighter.hp,
                player.fighter.max_hp, libtcod.light_red,
                libtcod.darker_red)
-    render_bar(con1, x, y + 3, bar_width, 'Placeholder', 0,
-               1, libtcod.light_red,
-               libtcod.darker_red)
+    render_bar(con1, x, y + 3, bar_width, 'XP', player.level.current_xp,
+               player.level.experience_to_next_lvl, libtcod.light_green,
+               libtcod.darker_green)
     libtcod.console_print_ex(con1, x, y + 6, libtcod.BKGND_NONE, libtcod.LEFT,
                              'POW(MOD): {0}({1})'.format(
                                  player.fighter.power,
@@ -216,14 +227,14 @@ def player_info(con1, game_map, x, y, iw, ih, player, bar_width):
     libtcod.console_hline(con1, x - 1, ih - 3, iw - 2, libtcod.BKGND_NONE)
     libtcod.console_set_default_foreground(con1, libtcod.desaturated_han)
     libtcod.console_print_ex(con1, x, ih - 2, libtcod.BKGND_NONE, libtcod.LEFT,
-                             'Press ? for help')
+                             'Hit F2 for help')
 
 
 def display_msgs(con3, msw, msh, y, msg_log):
     libtcod.console_clear(con3)
     libtcod.console_print_frame(con3, 0, 43, msw, msh,
                                 False, libtcod.BKGND_NONE, 'Message Log')
-    
+
     y = 1
     colorCoef = 0.4
     for message in msg_log.messages:

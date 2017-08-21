@@ -81,5 +81,127 @@ def main_menu(con, background_img, screen_width, screen_height):
     menu(con, '','', ['Play a new game', 'Continue last Game', 'Quit'],
          24, screen_width, screen_height, libtcod.black)
 
+
+def level_up_menu(con, header, player, menu_width, sw, sh):
+
+    options = [
+        'Constitution (+20 hp, from {0})'.format(player.fighter.max_hp),
+        'Strength (+1 hp, from {0})'.format(player.fighter.power),
+        'Agility (+1 hp, from {0})'.format(player.fighter.defense)
+    ]
+    menu(con, 'Level Up', header, options, menu_width, sw, sh,
+         libtcod.dark_green)
+
+
+def character_screen(title, player, char_sw, char_sh, sw, sh, color):
+    window = libtcod.console_new(char_sw, char_sh)
+
+    libtcod.console_set_default_foreground(window, libtcod.white)
+    libtcod.console_set_default_background(window, color)
+
+    libtcod.console_print_frame(window, 0, 0, char_sw, char_sh, True,
+                                libtcod.BKGND_SET, title)
+    libtcod.console_print_rect_ex(window, 2, 2, char_sw, char_sh,
+                                  libtcod.BKGND_NONE, libtcod.LEFT,
+                                  'Level: {0}'.format(
+                                      player.level.current_lvl
+                                  ))
+    libtcod.console_print_rect_ex(window, 2, 4, char_sw, char_sh,
+                                  libtcod.BKGND_NONE, libtcod.LEFT,
+                                  'Experience: {0}'.format(
+                                      player.level.current_xp
+                                  ))
+    libtcod.console_print_rect_ex(window, 2, 5, char_sw, char_sh,
+                                  libtcod.BKGND_NONE, libtcod.LEFT,
+                                  'Experience to next Level: {0}'.format(
+                                      player.level.experience_to_next_lvl
+                                  ))
+
+    x = sw // 2 - char_sw // 2
+    y = sh // 2 - char_sh // 2
+    libtcod.console_blit(window, 0, 0, char_sw, char_sh, 0, x, y, 1.0, 0.7)
+
+
+def help_screen(title, help_w, help_h, sw, sh, fore, fore2, back_col):
+    window = libtcod.console_new(help_w, help_h)
+
+    libtcod.console_set_default_foreground(window, fore)
+    libtcod.console_set_default_background(window, back_col)
+
+    libtcod.console_print_frame(window, 0, 0, help_w, help_h, True,
+                                libtcod.BKGND_SET, title)
+
+    libtcod.console_hline(window, 1, 1, help_w - 2, libtcod.BKGND_SET)
+    libtcod.console_hline(window, 1, 3, help_w - 2, libtcod.BKGND_SET)
+    libtcod.console_hline(window, 1, 5, help_w - 2, libtcod.BKGND_SET)
+    libtcod.console_vline(window, 13, 4, 1, libtcod.BKGND_SET)
+    libtcod.console_vline(window, 13, 6, 27, libtcod.BKGND_SET)
+    libtcod.console_print_rect_ex(window, int(help_w / 2), 2,
+                                  help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.CENTER, 'Controls')
+    libtcod.console_print_rect_ex(window, 2, 4, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, 'Movement')
+    libtcod.console_print_rect_ex(window, 2, 6, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, 'Up: ')
+    libtcod.console_print_rect_ex(window, 2, 9, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, 'Down  : ')
+    libtcod.console_print_rect_ex(window, 2, 12, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, 'Left  : ')
+    libtcod.console_print_rect_ex(window, 2, 15, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, 'Right : ')
+    libtcod.console_print_rect_ex(window, 2, 18, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, 'Daig.U.L.: ')
+    libtcod.console_print_rect_ex(window, 2, 21, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, 'Daig.U.R.: ')
+    libtcod.console_print_rect_ex(window, 2, 24, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, 'Daig.D.L.: ')
+    libtcod.console_print_rect_ex(window, 2, 27, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, 'Daig.D.R.: ')
+    libtcod.console_print_rect_ex(window, 2, 30, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, 'Pass : ')
+
+    libtcod.console_set_default_foreground(window, fore2)
+    libtcod.console_print_rect_ex(window, 2, 7, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, '{0}, {1}, {2}'.format(
+                                      chr(24), 'NP_8', 'k'))
+
+    libtcod.console_print_rect_ex(window, 2, 10, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, '{0}, {1}, {2}'.format(
+                                      chr(25), 'NP_2', 'j'))
+
+    libtcod.console_print_rect_ex(window, 2, 13, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, '{0}, {1}, {2}'.format(
+                                      chr(27), 'NP_4', 'h'))
+
+    libtcod.console_print_rect_ex(window, 2, 16, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, '{0}, {1}, {2}'.format(
+                                      chr(26), 'NP_6', 'l'))
+
+    libtcod.console_print_rect_ex(window, 2, 19, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, '{0}, {1}'.format(
+                                      'NP_7', 'y'))
+
+    libtcod.console_print_rect_ex(window, 2, 22, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, '{0}, {1}'.format(
+                                      'NP_9', 'u'))
+
+    libtcod.console_print_rect_ex(window, 2, 25, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, '{0}, {1}'.format(
+                                      'NP_1', 'b'))
+
+    libtcod.console_print_rect_ex(window, 2, 28, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, '{0}, {1}'.format(
+                                      'NP_3', 'n'))
+
+    libtcod.console_print_rect_ex(window, 2, 31, help_w, 1, libtcod.BKGND_SET,
+                                  libtcod.LEFT, '{0}, {1}'.format(
+                                      'NP_5', 'z'))
+
+
+    x = sw // 2 - help_w // 2
+    y = sh // 2 - help_h // 2
+    libtcod.console_blit(window, 0, 0, help_w, help_h, 0, x, y, 1.0, 0.8)
+
+
 def msg_box(con, title, header, width, sw, sh, color):
     menu(con, title, header, [], width, sw, sh, color)

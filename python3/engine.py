@@ -66,14 +66,18 @@ def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
         mouse_action = handle_mouse(mouse)
 
         move = action.get('move')
+        wait = action.get('wait')
         pickup = action.get('pickup')
         show_inventory = action.get('show_inventory')
         drop_inventory = action.get('drop_inventory')
         inventory_index = action.get('inventory_index')
         take_stairs = action.get('take_stairs')
+        level_up = action.get('level_up')
+        show_character_screen = action.get('show_character_screen')
         end = action.get('exit')
         fullscreen = action.get('fullscreen')
         screenshot = action.get('screenshot')
+        game_help = action.get('help')
 
         left_click = mouse_action.get('left_click')
         right_click = mouse_action.get('right_click')
@@ -97,6 +101,9 @@ def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
                     fov_recompute = True
 
                 game_state = GameStates.ENEMY_TURN
+
+        elif wait:
+            game_state = GameStates.ENEMY_TURN
 
         elif pickup and game_state == GameStates.PLAYERS_TURN:
             for entity in entities:
@@ -146,6 +153,25 @@ def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
                 msg_log.add_message(Message('There are no stairs here',
                                             libtcod.pink))
 
+        if level_up:
+            if level_up == 'hp':
+                player.fighter.max_hp += 20
+                player.fighter.hp += 20
+            elif level_up == 'str':
+                player.fighter.power += 1
+            elif level_up == 'def':
+                player.fighter.defense += 1
+
+            game_state = previous_game_state
+
+        if show_character_screen:
+            previous_game_state = game_state
+            game_state = GameStates.CHARACTER_SCREEN
+
+        if game_help:
+            previous_game_state = game_state
+            game_state = GameStates.GAME_HELP
+
         if game_state == GameStates.TARGETING:
             if left_click:
                 target_x, target_y = left_click
@@ -162,7 +188,9 @@ def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
 
         if end:
             if game_state in (GameStates.SHOW_INVENTORY,
-                              GameStates.DROP_INVENTORY):
+                              GameStates.DROP_INVENTORY,
+                              GameStates.CHARACTER_SCREEN,
+                              GameStates.GAME_HELP):
                 game_state = previous_game_state
             elif game_state == GameStates.TARGETING:
                 player_turn_results.append({'targeting_cancelled': True})
@@ -233,6 +261,17 @@ def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
                 msg_log.add_message(
                     Message('You gain {0} experience points.'.format(xp))
                 )
+
+                if leveled_up:
+                    msg_log.add_message(Message(
+                        'Your battle skills grow stronger! You reached' +
+                        ' level {0}'.format(
+                            player.level.current_lvl
+                        ) + '!', libtcod.light_han
+                    ))
+
+                    previous_game_state = game_state
+                    game_state = GameStates.LEVEL_UP
 
         if game_state == GameStates.ENEMY_TURN:
             for entity in entities:
