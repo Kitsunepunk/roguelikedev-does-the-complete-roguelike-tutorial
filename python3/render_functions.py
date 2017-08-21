@@ -6,9 +6,10 @@ from menus import inventory_menu
 
 
 class RenderOrder(Enum):
-    CORPSE = 1
-    ITEM = 2
-    ACTOR = 3
+    STAIRS = 1
+    CORPSE = 2
+    ITEM = 3
+    ACTOR = 4
 
 
 def get_names_under_mouse(mouse, entities, fov_map):
@@ -87,7 +88,7 @@ def render_all(con0, con1, con2, con3, entities, player, game_map, fov_map,
     # Draw all entities in the list
     entities_in_render_ord = sorted(entities, key=lambda x: x.render_ord.value)
     for entity in entities_in_render_ord:
-        draw_entity(con0, entity, fov_map)
+        draw_entity(con0, entity, fov_map, game_map)
 
     player_info(con1, game_map, 2, 2, iw, ih, player, bar_width)
 
@@ -125,10 +126,15 @@ def clear_all(con0, entities):
         clear_entity(con0, entity)
 
 
-def draw_entity(con0, entity, fov_map):
+def draw_entity(con0, entity, fov_map, game_map):
     if libtcod.map_is_in_fov(fov_map, entity.x, entity.y):
         libtcod.console_put_char_ex(con0, entity.x, entity.y, entity.char,
                                     entity.fore_color, entity.back_color)
+    elif entity.stairs and game_map.tiles[entity.x][entity.y].explored:
+        libtcod.console_put_char_ex(
+            con0, entity.x, entity.y, entity.char, entity.fore_color,
+            libtcod.darkest_grey
+        )
 
 
 def clear_entity(con0, entity):

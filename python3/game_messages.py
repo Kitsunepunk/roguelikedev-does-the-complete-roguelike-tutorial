@@ -1,13 +1,20 @@
 import libtcodpy as libtcod
 import textwrap
 
+
 class Message:
+    """
+    Text with a bit of style
+    """
     def __init__(self, text, color=libtcod.white):
         self.text = text
         self.color = color
 
 
 class MessageLog():
+    """
+    Logs styled text
+    """
     def __init__(self, x, width, height):
         self.messages = []
         self.x = x
@@ -15,6 +22,7 @@ class MessageLog():
         self.height = height
 
     def add_message(self, message):
+        """Adds messages to the log"""
         # Split the message if necessary, among multiple lines
         new_msg_lines = textwrap.wrap(message.text, self.width)
 

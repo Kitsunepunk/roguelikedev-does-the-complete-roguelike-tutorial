@@ -70,6 +70,7 @@ def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
         show_inventory = action.get('show_inventory')
         drop_inventory = action.get('drop_inventory')
         inventory_index = action.get('inventory_index')
+        take_stairs = action.get('take_stairs')
         end = action.get('exit')
         fullscreen = action.get('fullscreen')
         screenshot = action.get('screenshot')
@@ -131,6 +132,20 @@ def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
             elif game_state == GameStates.DROP_INVENTORY:
                 player_turn_results.extend(player.inventory.drop_item(item))
 
+        if take_stairs and game_state == GameStates.PLAYERS_TURN:
+            for entity in entities:
+                if (entity.stairs and entity.x == player.x and
+                        entity.y == player.y):
+                    entities = game_map.next_floor(player, msg_log, constants)
+                    fov_map = initialize_fov(game_map)
+                    fov_recompute = True
+                    libtcod.console_clear(mapcon)
+
+                    break
+            else:
+                msg_log.add_message(Message('There are no stairs here',
+                                            libtcod.pink))
+
         if game_state == GameStates.TARGETING:
             if left_click:
                 target_x, target_y = left_click
@@ -170,6 +185,7 @@ def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
             item_dropped = player_turn_result.get('item_dropped')
             targeting = player_turn_result.get('targeting')
             targeting_cancelled = player_turn_result.get('targeting_cancelled')
+            xp = player_turn_result.get('xp')
 
             if message:
                 msg_log.add_message(message)
@@ -211,6 +227,12 @@ def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
                 game_state = previous_game_state
 
                 msg_log.add_message(Message('Targeting cancelled'))
+
+            if xp:
+                leveled_up = player.level.add_xp(xp)
+                msg_log.add_message(
+                    Message('You gain {0} experience points.'.format(xp))
+                )
 
         if game_state == GameStates.ENEMY_TURN:
             for entity in entities:

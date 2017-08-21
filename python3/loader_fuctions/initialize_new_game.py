@@ -2,6 +2,7 @@ import libtcodpy as libtcod
 
 from components.fighter import Fighter
 from components.inventory import Inventory
+from components.level import Level
 from entity import Entity
 from game_messages import Message, MessageLog
 from game_states import GameStates
@@ -11,7 +12,7 @@ from render_functions import RenderOrder
 
 def get_constants():
     game_title = 'McGuffin Quest'
-    game_ver = ' py3_2017.08.18'
+    game_ver = ' py3_2017.08.19'
     window_title = game_title + game_ver
 
     limit_fps = 20
@@ -71,6 +72,7 @@ def get_constants():
         'player': '@',
         'potion': 173,
         'scroll': 19,
+        'd_stairs': 175,
         'troll': 'T',
         'wall': '#',
         'wall_w': 181,
@@ -98,6 +100,7 @@ def get_constants():
         'orc': libtcod.desaturated_green,
         'player_fore': libtcod.black,
         'player_back': libtcod.azure,
+        'stairs': libtcod.white,
         'troll': libtcod.darker_green,
         'dark_wall': libtcod.darker_grey,
         'light_wall': libtcod.light_sepia,
@@ -164,6 +167,7 @@ def get_game_vars(constants):
 
     fighter_c = Fighter(hp=30, defense=2, power=5)
     inventory_c = Inventory(26)
+    level_c = Level()
     player = Entity(0, 0, '@', libtcod.black, libtcod.light_azure, 'Player',
                     blocks=True,
                     render_ord=RenderOrder.ACTOR, fighter=fighter_c,
