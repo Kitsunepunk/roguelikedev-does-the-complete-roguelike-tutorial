@@ -121,7 +121,7 @@ def render_all(con0, con1, con2, con3, entities, player, game_map, fov_map,
     # fill_rects(con1, con2, con3, lw, lh, iw, ih, msw, msh)
 
     elif game_state == GameStates.LEVEL_UP:
-        level_up_menu(con0, 'Choose a Stat to raise: ', player, 40, sw, sh)
+        level_up_menu(con0, 'Choose a Stat to raise:\n ', player, 40, sw, sh)
 
     elif game_state == GameStates.CHARACTER_SCREEN:
         character_screen('character Screen', player, 30, 10, sw, sh,

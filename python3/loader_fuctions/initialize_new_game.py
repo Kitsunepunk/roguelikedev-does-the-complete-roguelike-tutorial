@@ -165,7 +165,7 @@ def get_constants():
 
 def get_game_vars(constants):
 
-    fighter_c = Fighter(hp=30, defense=2, power=5)
+    fighter_c = Fighter(hp=100, defense=1, power=4)
     inventory_c = Inventory(26)
     level_c = Level()
     player = Entity(0, 0, '@', libtcod.black, libtcod.light_azure, 'Player',
@@ -178,9 +178,7 @@ def get_game_vars(constants):
     game_map.make_map(constants['max_rooms'], constants['room_min_size'],
                       constants['room_max_size'], constants['map_width'],
                       constants['map_height'], player, entities,
-                      constants['sprites'], constants['colors'],
-                      constants['max_monsters_per_room'],
-                      constants['max_items_per_room'])
+                      constants['sprites'], constants['colors'])
 
     msg_log = MessageLog(1, constants['msg_width'] - 5,
                          constants['msg_height'] - 2)
