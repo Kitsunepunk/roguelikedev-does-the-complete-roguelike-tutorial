@@ -64,6 +64,9 @@ def handle_player_turn_keys(key):
     elif key_char == 'c':
         return {'show_character_screen': True}
 
+    elif key_char == 'w':
+        return {'save': True}
+
     if key.vk == libtcod.KEY_ENTER and key.lalt:
         # Alt+Enter: toggle fullscreen
         return {'fullscreen': True}
@@ -169,6 +172,8 @@ def handle_character_screen(key):
 def handle_help(key):
     if key.vk == libtcod.KEY_ESCAPE:
         return {'exit': True}
+    elif key.vk == libtcod.KEY_F1:
+        return {'screenshot': True}
 
     return {}
 

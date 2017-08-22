@@ -128,8 +128,8 @@ def render_all(con0, con1, con2, con3, entities, player, game_map, fov_map,
                          libtcod.dark_sepia)
 
     elif game_state == GameStates.GAME_HELP:
-        help_screen('Help Screen', 60, 34, sw, sh, libtcod.white,
-                    libtcod.light_grey, libtcod.blue)
+        help_screen('Help Screen', 52, 34, sw, sh, libtcod.blue,
+                    libtcod.white, libtcod.light_grey, libtcod.yellow)
 
 
 def clear_all(con0, entities):

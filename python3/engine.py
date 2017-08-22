@@ -74,6 +74,7 @@ def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
         take_stairs = action.get('take_stairs')
         level_up = action.get('level_up')
         show_character_screen = action.get('show_character_screen')
+        save_g = action.get('save')
         end = action.get('exit')
         fullscreen = action.get('fullscreen')
         screenshot = action.get('screenshot')
@@ -171,6 +172,10 @@ def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
         if game_help:
             previous_game_state = game_state
             game_state = GameStates.GAME_HELP
+
+        if save_g:
+            msg_log.add_message(Message('Game Saved', libtcod.light_han))
+            save_game(player, entities, game_map, msg_log, game_state)
 
         if game_state == GameStates.TARGETING:
             if left_click:
