@@ -70,15 +70,16 @@ def main_menu(con, background_img, screen_width, screen_height):
 
     libtcod.console_set_default_foreground(0, libtcod.light_yellow)
     libtcod.console_print_ex(
-        0, int(screen_width / 2),int(screen_height / 2) - 5, libtcod.BKGND_NONE,
-        libtcod.CENTER, 'McGuffin Quest'
+        0, int(screen_width / 2), int(screen_height / 2) - 5,
+        libtcod.BKGND_NONE, libtcod.CENTER, 'McGuffin Quest'
     )
     libtcod.console_print_ex(
         0, int(screen_width / 2), int(screen_height - 2), libtcod.BKGND_NONE,
         libtcod.CENTER, 'By usrTaken'
     )
 
-    menu(con, '','', ['Play a new game', 'Continue last Game', 'Quit'],
+    menu(con, '', '', ['Play a new game', 'Continue last Game', 'Options',
+                       'Quit'],
          24, screen_width, screen_height, libtcod.black)
 
 
@@ -125,8 +126,6 @@ def character_screen(title, player, char_sw, char_sh, sw, sh, color):
 def help_screen(title, help_w, help_h, sw, sh, col1, col2, col3, col4):
     window = libtcod.console_new(help_w, help_h)
 
-
-
     libtcod.console_set_default_foreground(window, col2)
     libtcod.console_set_default_background(window, col1)
     libtcod.console_print_frame(window, 0, 0, help_w, help_h, True,
@@ -134,7 +133,6 @@ def help_screen(title, help_w, help_h, sw, sh, col1, col2, col3, col4):
 
     libtcod.console_set_default_foreground(window, col1)
     libtcod.console_set_default_background(window, col2)
-
 
     libtcod.console_set_default_foreground(window, col1)
     libtcod.console_set_default_background(window, col3)
@@ -216,8 +214,6 @@ def help_screen(title, help_w, help_h, sw, sh, col1, col2, col3, col4):
     libtcod.console_vline(window, 39, 6, 19, libtcod.BKGND_SET)
 
     libtcod.console_hline(window, 14, 25, 37, libtcod.BKGND_SET)
-
-
 
     libtcod.console_set_default_foreground(window, col3)
     libtcod.console_print_rect_ex(window, 2, 7, help_w, 1, libtcod.BKGND_SET,

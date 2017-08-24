@@ -13,6 +13,12 @@ from menus import main_menu, msg_box
 from render_functions import clear_all, render_all
 
 
+def options_menu(con, background_img, screen_width, screen_height):
+
+    key = libtcod.Key()
+    mouse = libtcod.Mouse()
+
+
 def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
               lookcon, msgcon, constants):
     """
@@ -317,7 +323,7 @@ def play_game(player, entities, game_map, msg_log, game_state, mapcon, infocon,
 def main():
     constants = get_constants()
 
-    libtcod.console_set_custom_font('./assets/cp437_8x8.png',
+    libtcod.console_set_custom_font(constants['game_font'],
                                     libtcod.FONT_TYPE_GREYSCALE |
                                     libtcod.FONT_LAYOUT_ASCII_INROW)
 
@@ -343,6 +349,7 @@ def main():
 
     show_main_menu = True
     show_load_err_msg = False
+    show_not_imp_msg = False
 
     main_menu_background_img = libtcod.image_load(
         './assets/menu_background.png'
@@ -366,6 +373,11 @@ def main():
                 msg_box(mapcon, 'Error', 'No save game to load', 50,
                         constants['screen_width'], constants['screen_height'],
                         libtcod.red)
+            
+            elif show_not_imp_msg:
+                msg_box(mapcon, 'Error', 'Not implemented yet', 50,
+                        constants['screen_width'], constants['screen_height'],
+                        libtcod.red)
 
             libtcod.console_flush()
 
@@ -373,10 +385,15 @@ def main():
 
             new_game = action.get('new_game')
             load_saved_game = action.get('load_game')
+            options_menu = action.get('options')
             end_game = action.get('exit')
 
-            if show_load_err_msg and (new_game or load_saved_game or end_game):
+            if show_load_err_msg and (new_game or load_saved_game or
+                                      options_menu or end_game):
                 show_load_err_msg = False
+            elif show_not_imp_msg and (new_game or load_saved_game or
+                                       options_menu or end_game):
+                show_option_err_msg = False
             elif new_game:
                 player, entities, game_map, msg_log, game_state = get_game_vars(
                     constants
@@ -390,6 +407,8 @@ def main():
                     show_main_menu = False
                 except FileNotFoundError:
                     show_load_err_msg = True
+            elif options_menu:
+                show_not_imp_msg = True
             elif end_game:
                 break
 

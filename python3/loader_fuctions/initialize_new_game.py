@@ -15,6 +15,8 @@ def get_constants():
     game_ver = ' py3_2017.08.19'
     window_title = game_title + game_ver
 
+    game_font = 'assets/fonts/cp437_14x14.png'
+
     limit_fps = 20
 
     # Window
@@ -126,6 +128,7 @@ def get_constants():
 
     constants = {
         'window_title': window_title,
+        'game_font': game_font,
         'limit_fps': limit_fps,
         'screen_width': screen_width,
         'screen_height': screen_height,
